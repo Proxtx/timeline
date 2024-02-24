@@ -1,0 +1,86 @@
+use {
+    crate::AvailablePlugins,
+    mongodb::{
+        bson::{doc, Document},
+        error::Error as MongoDBError,
+        Client, Collection, Cursor, Database as MongoDatabase,
+    },
+    serde::{Deserialize, Serialize},
+    std::{fmt, time::SystemTime},
+};
+
+struct Database {
+    database: MongoDatabase,
+}
+
+impl Database {
+    pub async fn new(connection_string: &str, database: &str) -> DatabaseResult<Database> {
+        let client = Client::with_uri_str(connection_string).await?;
+        let database = client.database(database);
+
+        Ok(Database { database })
+    }
+
+    pub async fn register_event<T>(&self, event: &Event<T>) -> DatabaseResult<()>
+    where
+        T: Serialize,
+    {
+        self.database
+            .collection::<Event<T>>("events")
+            .insert_one(event, None)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn get_events<T>(&self) -> DatabaseResult<Cursor<Event<T>>> {
+        Ok(self
+            .database
+            .collection::<Event<T>>("events")
+            .find(None, None)
+            .await?)
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+struct Event<T> {
+    timing: Timing,
+    plugin: AvailablePlugins,
+    event: T,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+enum Timing {
+    Range(SystemTime, SystemTime),
+    Event(SystemTime),
+}
+
+type DatabaseResult<T> = Result<T, DatabaseError>;
+
+#[derive(Debug)]
+enum DatabaseError {
+    SerializationError(mongodb::bson::ser::Error),
+    MongoDBError(MongoDBError),
+}
+
+impl fmt::Display for DatabaseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DatabaseError::SerializationError(e) => {
+                write!(f, "Unable to serialize some data: {}", e)
+            }
+            DatabaseError::MongoDBError(e) => write!(f, "A Mongodb Database Error ocurred: {}", e),
+        }
+    }
+}
+
+impl From<MongoDBError> for DatabaseError {
+    fn from(value: MongoDBError) -> Self {
+        DatabaseError::MongoDBError(value)
+    }
+}
+
+impl From<mongodb::bson::ser::Error> for DatabaseError {
+    fn from(value: mongodb::bson::ser::Error) -> Self {
+        DatabaseError::SerializationError(value)
+    }
+}
