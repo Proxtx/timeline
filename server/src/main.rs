@@ -6,7 +6,8 @@ pub trait Plugin {
     fn init(&self);
 }
 
-fn main() {
-    let t = Plugins::init();
-    t.plugins["hello"].init();
+#[tokio::main]
+async fn main() {
+    let t = Plugins::init().await;
+    t.plugins["test"].init();
 }

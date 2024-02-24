@@ -44,7 +44,12 @@ fn main() {
     let as_enum = plugins.iter().map(|v| v.0.to_string()).collect::<String>();
     let init_str = plugins
         .iter()
-        .map(|v| format!("(\"{}\", Box::new({}::Plugin::new()))", v.0, v.0))
+        .map(|v| {
+            format!(
+                "(\"{}\".to_string(), Box::new({}::Plugin::new().await) as Box<dyn Plugin>)",
+                v.0, v.0
+            )
+        })
         .intersperse(", ".to_string())
         .collect::<String>();
     let importer = format!(
@@ -67,7 +72,7 @@ fn main() {
     }}
 
     impl Plugins {{
-        pub fn init() -> Plugins {{
+        pub async fn init() -> Plugins {{
             Plugins {{
                 plugins: HashMap::from([{}])
             }}
