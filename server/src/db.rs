@@ -1,10 +1,6 @@
 use {
     crate::AvailablePlugins,
-    mongodb::{
-        bson::{doc, Document},
-        error::Error as MongoDBError,
-        Client, Collection, Cursor, Database as MongoDatabase,
-    },
+    mongodb::{bson::doc, error::Error as MongoDBError, Client, Cursor, Database as MongoDatabase},
     serde::{Deserialize, Serialize},
     std::{fmt, time::SystemTime},
 };

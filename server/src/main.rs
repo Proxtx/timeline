@@ -3,9 +3,12 @@ use db::Database;
 mod config;
 mod db;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
+#[path = "../plugins/test.rs"]
+mod test;
 
 pub trait Plugin {
     fn init(&self);
+    fn get_type(&self) -> AvailablePlugins;
 }
 
 #[tokio::main]
