@@ -46,8 +46,8 @@ fn main() {
         .iter()
         .map(|v| {
             format!(
-                "(\"{}\".to_string(), Box::new({}::Plugin::new().await) as Box<dyn Plugin>)",
-                v.0, v.0
+                "(\"{}\".to_string(), Box::new({}::Plugin::new(handler(\"{}\")).await) as Box<dyn Plugin>)",
+                v.0, v.0, &v.0
             )
         })
         .intersperse(", ".to_string())
@@ -62,8 +62,8 @@ fn main() {
         std::collections::HashMap
     }};
     
-    pub struct Plugins {{
-        pub plugins: HashMap<String, Box<dyn Plugin>>
+    pub struct Plugins<'a> {{
+        pub plugins: HashMap<String, Box<dyn Plugin + 'a>>
     }}
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -71,8 +71,8 @@ fn main() {
         {}
     }}
 
-    impl Plugins {{
-        pub async fn init() -> Plugins {{
+    impl<'a> Plugins<'a> {{
+        pub async fn init(handler: impl FnOnce(&str) -> PluginData<'a>) -> Plugins<'a> {{
             Plugins {{
                 plugins: HashMap::from([{}])
             }}

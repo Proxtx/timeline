@@ -6,9 +6,10 @@ use {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Config {
-    password: String,
-    port: u16,
-    db_connection_string: String,
+    pub password: String,
+    pub port: u16,
+    pub db_connection_string: String,
+    pub database: String,
 }
 
 impl Config {
@@ -25,7 +26,7 @@ impl Config {
 type ConfigResult<T> = Result<T, ConfigError>;
 
 #[derive(Debug)]
-enum ConfigError {
+pub enum ConfigError {
     FileSystemError(std::io::Error),
     ParserError(toml::de::Error),
 }

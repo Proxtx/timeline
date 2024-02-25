@@ -9,7 +9,7 @@ use {
     std::{fmt, time::SystemTime},
 };
 
-struct Database {
+pub struct Database {
     database: MongoDatabase,
 }
 
@@ -42,22 +42,22 @@ impl Database {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-struct Event<T> {
+pub struct Event<T> {
     timing: Timing,
     plugin: AvailablePlugins,
     event: T,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-enum Timing {
+pub enum Timing {
     Range(SystemTime, SystemTime),
-    Event(SystemTime),
+    Instant(SystemTime),
 }
 
 type DatabaseResult<T> = Result<T, DatabaseError>;
 
 #[derive(Debug)]
-enum DatabaseError {
+pub enum DatabaseError {
     SerializationError(mongodb::bson::ser::Error),
     MongoDBError(MongoDBError),
 }
