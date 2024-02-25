@@ -11,7 +11,11 @@ fn main() {
         .expect("Plugins Folder not found.")
         .map(|v| {
             let dir_entry = v.expect("unable to read directory");
-            if dir_entry.file_type().expect("unable to read file-type").is_file() {
+            if dir_entry
+                .file_type()
+                .expect("unable to read file-type")
+                .is_file()
+            {
                 panic!("Did not expect a file in plugins folder");
             }
             let name = dir_entry
@@ -22,12 +26,11 @@ fn main() {
             path.push("plugin.rs");
             (
                 name,
-                /*fs::canonicalize(*/
-                "../../../../../".to_string() + &path.into_os_string().into_string().unwrap(), /*)
-                                                                    .expect("unable to resolve path")
-                                                                    .into_os_string()
-                                                                    .into_string()
-                                                                    .expect("os string error")*/
+                fs::canonicalize(&path)
+                    .expect("unable to resolve path")
+                    .into_os_string()
+                    .into_string()
+                    .expect("os string error"),
             )
         })
         .collect();
@@ -42,7 +45,11 @@ fn main() {
         );
         output
     });
-    let as_enum = plugins.iter().map(|v| v.0.to_string()).collect::<String>();
+    let as_enum = plugins
+        .iter()
+        .map(|v| v.0.to_string())
+        .intersperse(String::from(','))
+        .collect::<String>();
     let init_str = plugins
         .iter()
         .map(|v| {
@@ -64,10 +71,11 @@ fn main() {
     }};
     
     pub struct Plugins<'a> {{
-        pub plugins: HashMap<String, Box<dyn Plugin + 'a>>
+        pub plugins: HashMap<String, Box<dyn Plugin<'a> + 'a>>
     }}
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
+    #[allow(non_camel_case_types)]
     pub enum AvailablePlugins {{
         {}
     }}
@@ -79,7 +87,7 @@ fn main() {
     }}
 
     impl<'a> Plugins<'a> {{
-        pub async fn init(handler: impl FnOnce(AvailablePlugins) -> PluginData<'a>) -> Plugins<'a> {{
+        pub async fn init(handler: impl Fn(AvailablePlugins) -> PluginData<'a>) -> Plugins<'a> {{
             Plugins {{
                 plugins: HashMap::from([{}])
             }}

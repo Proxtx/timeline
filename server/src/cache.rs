@@ -2,31 +2,40 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::Plugin;
 use std::fmt;
-use std::fs::read_to_string;
+use tokio::fs::read_to_string;
 
 pub struct Cache<CacheType>
 where
-    CacheType: Serialize + DeserializeOwned,
+    CacheType: Serialize + DeserializeOwned + Default,
 {
     cache: CacheType,
 }
 
 impl<CacheType> Cache<CacheType>
 where
-    CacheType: Serialize + DeserializeOwned,
+    CacheType: Serialize + DeserializeOwned + Default,
 {
-    async fn load<PluginType>() -> CacheResult<Cache<CacheType>>
+    async fn load<'a, PluginType>() -> CacheResult<Cache<CacheType>>
     where
-        PluginType: Plugin,
+        PluginType: Plugin<'a>,
     {
-        let str = std::fs::read_to_string(format!("cache/{}", PluginType::get_type()))?;
-        let t: CacheType = serde_json::from_str(&str)?;
-        Ok(Cache { cache: t })
+        match read_to_string(format!("cache/{}", PluginType::get_type())).await {
+            Ok(str) => {
+                let t: CacheType = serde_json::from_str(&str)?;
+                Ok(Cache { cache: t })
+            }
+            Err(e) => match e.kind() {
+                std::io::ErrorKind::NotFound => Ok(Cache {
+                    cache: CacheType::default(),
+                }),
+                _ => Err(CacheError::FileSystemError(e)),
+            },
+        }
     }
 
-    async fn update<PluginType>(&mut self, data: CacheType) -> CacheResult<()>
+    async fn update<'a, PluginType>(&mut self, data: CacheType) -> CacheResult<()>
     where
-        PluginType: Plugin,
+        PluginType: Plugin<'a>,
     {
         let str = serde_json::to_string(&data)?;
         self.cache = data;

@@ -1,4 +1,3 @@
-use cache::Cache;
 use db::Database;
 
 mod cache;
@@ -7,9 +6,13 @@ mod db;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 /*#[path = "../plugins/test.rs"]
 mod test;*/
-//TODO: fix the import in the build script to import from absolute path
+#[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
+mod timeline_plugin_media_scan;
 
-pub trait Plugin {
+pub trait Plugin<'a> {
+    async fn new(data: PluginData<'a>) -> Self
+    where
+        Self: Sized;
     fn get_type() -> AvailablePlugins
     where
         Self: Sized;
