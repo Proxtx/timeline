@@ -22,11 +22,12 @@ fn main() {
             split_name.pop();
             (
                 split_name.join("."),
-                fs::canonicalize(file.path())
-                    .expect("unable to resolve path")
-                    .into_os_string()
-                    .into_string()
-                    .expect("os string error"),
+                /*fs::canonicalize(*/
+                "../../../../../".to_string() + &file.path().into_os_string().into_string().unwrap(), /*)
+                                                                    .expect("unable to resolve path")
+                                                                    .into_os_string()
+                                                                    .into_string()
+                                                                    .expect("os string error")*/
             )
         })
         .collect();
@@ -59,7 +60,7 @@ fn main() {
 
     use {{
         serde::{{Serialize, Deserialize}},
-        std::collections::HashMap
+        std::{{fmt, collections::HashMap}}
     }};
     
     pub struct Plugins<'a> {{
@@ -69,6 +70,12 @@ fn main() {
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     pub enum AvailablePlugins {{
         {}
+    }}
+
+    impl fmt::Display for AvailablePlugins {{
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {{
+            write!(f, \"{{:?}}\", self)
+        }}
     }}
 
     impl<'a> Plugins<'a> {{

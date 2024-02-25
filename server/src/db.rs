@@ -1,5 +1,6 @@
 use {
-    crate::AvailablePlugins,
+    crate::{AvailablePlugins, Plugin},
+    futures::StreamExt,
     mongodb::{bson::doc, error::Error as MongoDBError, Client, Cursor, Database as MongoDatabase},
     serde::{Deserialize, Serialize},
     std::{fmt, time::SystemTime},
@@ -35,11 +36,21 @@ impl Database {
             .find(None, None)
             .await?)
     }
+
+    pub async fn event_count(&self) -> DatabaseResult<usize> {
+        Ok(self
+            .get_events::<mongodb::bson::Document>()
+            .await?
+            .count()
+            .await
+            .to_le())
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Event<T> {
     timing: Timing,
+    id: String,
     plugin: AvailablePlugins,
     event: T,
 }

@@ -1,14 +1,18 @@
+use cache::Cache;
 use db::Database;
 
+mod cache;
 mod config;
 mod db;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
-#[path = "../plugins/test.rs"]
-mod test;
+/*#[path = "../plugins/test.rs"]
+mod test;*/
+//TODO: fix the import in the build script to import from absolute path
 
 pub trait Plugin {
-    fn init(&self);
-    fn get_type(&self) -> AvailablePlugins;
+    fn get_type() -> AvailablePlugins
+    where
+        Self: Sized;
 }
 
 #[tokio::main]
@@ -24,7 +28,6 @@ async fn main() {
         });
 
     let t = Plugins::init(|_plugin_name| PluginData { database: &db }).await;
-    t.plugins["test"].init();
 }
 
 pub struct PluginData<'a> {
