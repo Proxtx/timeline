@@ -10,20 +10,20 @@ fn main() {
     let plugins: Vec<(String, String)> = fs::read_dir("plugins")
         .expect("Plugins Folder not found.")
         .map(|v| {
-            let file = v.expect("unable to read directory");
-            if file.file_type().expect("unable to read file-type").is_dir() {
-                panic!("Did not expect directory in plugins folder");
+            let dir_entry = v.expect("unable to read directory");
+            if dir_entry.file_type().expect("unable to read file-type").is_file() {
+                panic!("Did not expect a file in plugins folder");
             }
-            let name = file
+            let name = dir_entry
                 .file_name()
                 .into_string()
                 .expect("unable to parse filename");
-            let mut split_name: Vec<&str> = name.split('.').collect();
-            split_name.pop();
+            let mut path = dir_entry.path();
+            path.push("plugin.rs");
             (
-                split_name.join("."),
+                name,
                 /*fs::canonicalize(*/
-                "../../../../../".to_string() + &file.path().into_os_string().into_string().unwrap(), /*)
+                "../../../../../".to_string() + &path.into_os_string().into_string().unwrap(), /*)
                                                                     .expect("unable to resolve path")
                                                                     .into_os_string()
                                                                     .into_string()
@@ -47,7 +47,7 @@ fn main() {
         .iter()
         .map(|v| {
             format!(
-                "(\"{}\".to_string(), Box::new({}::Plugin::new(handler(\"{}\")).await) as Box<dyn Plugin>)",
+                "(\"{}\".to_string(), Box::new({}::Plugin::new(handler(AvailablePlugins::{})).await) as Box<dyn Plugin>)",
                 v.0, v.0, &v.0
             )
         })
@@ -67,7 +67,7 @@ fn main() {
         pub plugins: HashMap<String, Box<dyn Plugin + 'a>>
     }}
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
     pub enum AvailablePlugins {{
         {}
     }}
@@ -79,7 +79,7 @@ fn main() {
     }}
 
     impl<'a> Plugins<'a> {{
-        pub async fn init(handler: impl FnOnce(&str) -> PluginData<'a>) -> Plugins<'a> {{
+        pub async fn init(handler: impl FnOnce(AvailablePlugins) -> PluginData<'a>) -> Plugins<'a> {{
             Plugins {{
                 plugins: HashMap::from([{}])
             }}

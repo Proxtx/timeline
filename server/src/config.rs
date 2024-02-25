@@ -1,6 +1,6 @@
 use {
     serde::Deserialize,
-    std::fmt,
+    std::{collections::HashMap, fmt},
     tokio::{fs::File, io::AsyncReadExt},
 };
 
@@ -10,6 +10,7 @@ pub struct Config {
     pub port: u16,
     pub db_connection_string: String,
     pub database: String,
+    pub plugin_config: HashMap<crate::AvailablePlugins, toml::Value>,
 }
 
 impl Config {

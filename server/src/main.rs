@@ -27,9 +27,14 @@ async fn main() {
             panic! {"Unable to connect to Database: {}", e};
         });
 
-    let t = Plugins::init(|_plugin_name| PluginData { database: &db }).await;
+    let t = Plugins::init(|plugin| PluginData {
+        database: &db,
+        config: config.plugin_config.get(&plugin),
+    })
+    .await;
 }
 
 pub struct PluginData<'a> {
     pub database: &'a Database,
+    pub config: Option<&'a toml::Value>,
 }
