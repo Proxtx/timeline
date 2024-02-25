@@ -15,7 +15,7 @@ impl<CacheType> Cache<CacheType>
 where
     CacheType: Serialize + DeserializeOwned + Default,
 {
-    async fn load<'a, PluginType>() -> CacheResult<Cache<CacheType>>
+    pub async fn load<'a, PluginType>() -> CacheResult<Cache<CacheType>>
     where
         PluginType: Plugin<'a>,
     {
@@ -33,13 +33,21 @@ where
         }
     }
 
-    async fn update<'a, PluginType>(&mut self, data: CacheType) -> CacheResult<()>
+    pub fn get(&self) -> &CacheType {
+        &self.cache
+    }
+
+    pub async fn update<'a, PluginType>(&mut self, data: CacheType) -> CacheResult<()>
     where
         PluginType: Plugin<'a>,
     {
         let str = serde_json::to_string(&data)?;
         self.cache = data;
-        std::fs::write(format!("cache/{}", PluginType::get_type()), str)?;
+        tokio::spawn(async move {
+            if let Err(e) = std::fs::write(format!("cache/{}", PluginType::get_type()), str) {
+                eprintln!("Unable to write cache file: {}", e)
+            }
+        });
         Ok(())
     }
 }

@@ -1,5 +1,6 @@
 use {
-    crate::{AvailablePlugins, Plugin},
+    crate::AvailablePlugins,
+    chrono::{DateTime, Utc},
     futures::StreamExt,
     mongodb::{bson::doc, error::Error as MongoDBError, Client, Cursor, Database as MongoDatabase},
     serde::{Deserialize, Serialize},
@@ -57,8 +58,8 @@ pub struct Event<T> {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum Timing {
-    Range(SystemTime, SystemTime),
-    Instant(SystemTime),
+    Range(DateTime<Utc>, DateTime<Utc>),
+    Instant(DateTime<Utc>),
 }
 
 type DatabaseResult<T> = Result<T, DatabaseError>;

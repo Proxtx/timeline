@@ -1,3 +1,6 @@
+#![feature(unboxed_closures)]
+#![feature(fn_traits)]
+
 use db::Database;
 
 mod cache;
@@ -10,7 +13,7 @@ mod test;*/
 mod timeline_plugin_media_scan;
 
 pub trait Plugin<'a> {
-    async fn new(data: PluginData<'a>) -> Self
+    fn new(data: PluginData<'a>) -> impl std::future::Future<Output = Self> + Send
     where
         Self: Sized;
     fn get_type() -> AvailablePlugins
