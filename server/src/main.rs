@@ -7,10 +7,8 @@ mod cache;
 mod config;
 mod db;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
-/*#[path = "../plugins/test.rs"]
-mod test;*/
 #[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
-mod timeline_plugin_media_scan;
+mod test;
 
 pub trait Plugin<'a> {
     fn new(data: PluginData<'a>) -> impl std::future::Future<Output = Self> + Send

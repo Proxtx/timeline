@@ -2,9 +2,11 @@ use {
     crate::AvailablePlugins,
     chrono::{DateTime, Utc},
     futures::StreamExt,
-    mongodb::{bson::doc, error::Error as MongoDBError, Client, Cursor, Database as MongoDatabase},
+    mongodb::{
+        bson::doc, error::Error as MongoDBError, Client, Collection, Database as MongoDatabase,
+    },
     serde::{Deserialize, Serialize},
-    std::{fmt, time::SystemTime},
+    std::fmt,
 };
 
 pub struct Database {
@@ -30,17 +32,14 @@ impl Database {
         Ok(())
     }
 
-    pub async fn get_events<T>(&self) -> DatabaseResult<Cursor<Event<T>>> {
-        Ok(self
-            .database
-            .collection::<Event<T>>("events")
-            .find(None, None)
-            .await?)
+    pub fn get_events<T>(&self) -> Collection<Event<T>> {
+        self.database.collection::<Event<T>>("events")
     }
 
     pub async fn event_count(&self) -> DatabaseResult<usize> {
         Ok(self
             .get_events::<mongodb::bson::Document>()
+            .find(None, None)
             .await?
             .count()
             .await
