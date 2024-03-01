@@ -1,11 +1,13 @@
 #![feature(unboxed_closures)]
 #![feature(fn_traits)]
 
+use chrono::Duration;
 use db::Database;
 
 mod cache;
 mod config;
 mod db;
+mod plugin_manager;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 #[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
 mod test;
@@ -15,6 +17,10 @@ pub trait Plugin<'a> {
     where
         Self: Sized;
     fn get_type() -> AvailablePlugins
+    where
+        Self: Sized;
+
+    fn request_loop(&mut self) -> impl std::future::Future<Output = Option<Duration>> + Send
     where
         Self: Sized;
 }
@@ -36,6 +42,8 @@ async fn main() {
         config: config.plugin_config.get(&plugin),
     })
     .await;
+
+    let plugin_manager = plugin_manager::PluginManager::new(t.plugins);
 }
 
 pub struct PluginData<'a> {

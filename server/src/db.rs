@@ -3,7 +3,8 @@ use {
     chrono::{DateTime, Utc},
     futures::StreamExt,
     mongodb::{
-        bson::doc, error::Error as MongoDBError, Client, Collection, Database as MongoDatabase,
+        bson::doc, error::Error as MongoDBError, results::InsertManyResult, Client, Collection,
+        Database as MongoDatabase,
     },
     serde::{Deserialize, Serialize},
     std::fmt,
@@ -21,13 +22,24 @@ impl Database {
         Ok(Database { database })
     }
 
-    pub async fn register_event<T>(&self, event: &Event<T>) -> DatabaseResult<()>
+    pub async fn register_single_event<T>(&self, event: &Event<T>) -> DatabaseResult<()>
     where
         T: Serialize,
     {
         self.database
             .collection::<Event<T>>("events")
             .insert_one(event, None)
+            .await?;
+        Ok(())
+    }
+
+    pub async fn register_events<T>(&self, events: &Vec<Event<T>>) -> DatabaseResult<()>
+    where
+        T: Serialize,
+    {
+        self.database
+            .collection::<Event<T>>("events")
+            .insert_many(events, None)
             .await?;
         Ok(())
     }
@@ -47,15 +59,15 @@ impl Database {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct Event<T> {
-    timing: Timing,
-    id: String,
-    plugin: AvailablePlugins,
-    event: T,
+    pub timing: Timing,
+    pub id: String,
+    pub plugin: AvailablePlugins,
+    pub event: T,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum Timing {
     Range(DateTime<Utc>, DateTime<Utc>),
     Instant(DateTime<Utc>),

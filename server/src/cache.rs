@@ -37,12 +37,26 @@ where
         &self.cache
     }
 
-    pub async fn update<'a, PluginType>(&mut self, data: CacheType) -> CacheResult<()>
+    pub fn get_mut(&self) -> &mut CacheType {
+        &mut self.cache
+    }
+
+    pub fn update<'a, PluginType>(&mut self, data: CacheType) -> CacheResult<()>
     where
         PluginType: Plugin<'a>,
     {
         let str = serde_json::to_string(&data)?;
         self.cache = data;
+        self.save::<PluginType>();
+        Ok(())
+    }
+
+    pub fn save<'a, PluginType>(&self) -> CacheResult<()>
+    where
+        PluginType: Plugin<'a>,
+    {
+        let str = serde_json::to_string(&self.cache)?;
+
         tokio::spawn(async move {
             if let Err(e) = std::fs::write(format!("cache/{}", PluginType::get_type()), str) {
                 eprintln!("Unable to write cache file: {}", e)
