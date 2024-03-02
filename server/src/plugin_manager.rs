@@ -27,7 +27,9 @@ impl<'a> PluginManager<'a> {
         }
         match rqwlp {
             Some(v) => {
-                tokio::time::sleep(v);
+                tokio::time::sleep(
+                    v.to_std().unwrap(), /* why should this fail? If it fails is will probably during testing. */
+                );
                 tokio::spawn(async move { PluginManager::update_loop(plugin) });
             }
             _ => {}

@@ -11,8 +11,13 @@ mod plugin_manager;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 #[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
 mod test;
+use async_trait::async_trait;
 
-pub trait Plugin<'a> {
+#[async_trait]
+pub trait Plugin<'a>
+where
+    Self: Send,
+{
     fn new(data: PluginData<'a>) -> impl std::future::Future<Output = Self> + Send
     where
         Self: Sized;
@@ -20,9 +25,9 @@ pub trait Plugin<'a> {
     where
         Self: Sized;
 
-    fn request_loop(&mut self) -> impl std::future::Future<Output = Option<Duration>> + Send
+    async fn request_loop(&mut self) -> Option<Duration>
     where
-        Self: Sized;
+        Self: Send;
 }
 
 #[tokio::main]
