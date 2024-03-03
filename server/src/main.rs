@@ -25,7 +25,7 @@ where
     where
         Self: Sized;
 
-    async fn request_loop(&mut self) -> Option<Duration>
+    fn request_loop(&mut self) -> Box<impl future::Future<Output = Option<Duration>>>
     where
         Self: Send;
 }
