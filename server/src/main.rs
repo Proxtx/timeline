@@ -3,6 +3,7 @@
 
 use chrono::Duration;
 use db::Database;
+use std::pin::Pin;
 
 mod cache;
 mod config;
@@ -25,9 +26,7 @@ where
     where
         Self: Sized;
 
-    fn request_loop(&mut self) -> Box<impl future::Future<Output = Option<Duration>>>
-    where
-        Self: Send;
+    fn request_loop(&mut self) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send>>;
 }
 
 #[tokio::main]
