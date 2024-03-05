@@ -5,7 +5,7 @@ use tokio::sync::RwLock;
 
 use crate::Plugin;
 
-type ThreadedPlugin<'a> = Arc<RwLock<Box<dyn Plugin<'a> + Send + Sync>>>;
+type ThreadedPlugin<'a> = Arc<RwLock<Box<dyn Plugin<'a>>>>;
 type PluginsMap<'a> = HashMap<String, ThreadedPlugin<'a>>;
 pub struct PluginManager<'a> {
     plugins: PluginsMap<'a>,
@@ -20,25 +20,11 @@ impl<'a> PluginManager<'a> {
         PluginManager { plugins }
     }
 
-    pub async fn update_loop<'b>(plugin: ThreadedPlugin<'b>)
-    where
-        Self: Send,
-    {
-        let rqwlp;
-        {
-            let mut mut_plg = plugin.write().await;
-            let fut = mut_plg.request_loop();
-            pin!(fut);
-            rqwlp = fut.await;
-        }
-        match rqwlp {
-            Some(v) => {
-                tokio::time::sleep(
-                    v.to_std().unwrap(), /* why should this fail? If it fails is will probably during testing. */
-                );
-                tokio::spawn(async move { PluginManager::update_loop(plugin).await });
-            }
-            _ => {}
-        }
+    pub async fn update_loop<'b>(plugin: ThreadedPlugin<'b>) -> Option<chrono::Duration> {
+        /*let mut mut_plg = plugin.write().await;
+        let fut = mut_plg.request_loop();
+        pin!(fut);
+        return fut.await;*/
+        return None;
     }
 }

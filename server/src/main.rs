@@ -26,7 +26,7 @@ where
     where
         Self: Sized;
 
-    fn request_loop(&mut self) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send>>;
+    //async fn request_loop(&mut self) -> Option<Duration>;
 }
 
 #[tokio::main]
@@ -41,13 +41,16 @@ async fn main() {
             panic! {"Unable to connect to Database: {}", e};
         });
 
-    let t = Plugins::init(|plugin| PluginData {
+    let mut t = Plugins::init(|plugin| PluginData {
         database: &db,
         config: config.plugin_config.get(&plugin),
     })
     .await;
 
-    let plugin_manager = plugin_manager::PluginManager::new(t.plugins);
+    let mut plgs = HashMap::new();
+    std::mem::swap(&mut t.plugins, &mut plgs);
+
+    let plugin_manager = plugin_manager::PluginManager::new(plgs);
 }
 
 pub struct PluginData<'a> {

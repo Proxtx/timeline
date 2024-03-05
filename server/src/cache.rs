@@ -37,7 +37,7 @@ where
         &self.cache
     }
 
-    pub fn get_mut(&self) -> &mut CacheType {
+    pub fn get_mut(&mut self) -> &mut CacheType {
         &mut self.cache
     }
 
@@ -45,7 +45,6 @@ where
     where
         PluginType: Plugin<'a>,
     {
-        let str = serde_json::to_string(&data)?;
         self.cache = data;
         self.save::<PluginType>();
         Ok(())
