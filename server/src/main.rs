@@ -13,7 +13,7 @@ mod db;
 mod plugin_manager;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 #[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
-mod test;
+mod _i1;
 use async_trait::async_trait;
 
 #[async_trait]
@@ -25,7 +25,9 @@ pub trait Plugin: Send + Sync {
     where
         Self: Sized;
 
-    async fn request_loop(&mut self) -> Option<Duration>;
+    fn request_loop<'a>(
+        &'a mut self,
+    ) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send + 'a>>;
 }
 
 #[tokio::main]

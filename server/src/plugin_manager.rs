@@ -31,7 +31,6 @@ impl PluginManager {
     pub fn update_loop(
         plugin: ThreadedPlugin,
     ) -> Pin<Box<dyn futures::Future<Output = ()> + Send>> {
-        println!("Execute",);
         async move {
             let lptm;
             {
