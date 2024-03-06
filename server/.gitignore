@@ -1,3 +1,4 @@
 target/*
 plugins/*
 config.toml
+cache/*

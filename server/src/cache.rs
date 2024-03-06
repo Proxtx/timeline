@@ -17,7 +17,7 @@ where
 {
     pub async fn load<'a, PluginType>() -> CacheResult<Cache<CacheType>>
     where
-        PluginType: Plugin<'a>,
+        PluginType: Plugin,
     {
         match read_to_string(format!("cache/{}", PluginType::get_type())).await {
             Ok(str) => {
@@ -41,18 +41,18 @@ where
         &mut self.cache
     }
 
-    pub fn update<'a, PluginType>(&mut self, data: CacheType) -> CacheResult<()>
+    pub fn update<PluginType>(&mut self, data: CacheType) -> CacheResult<()>
     where
-        PluginType: Plugin<'a>,
+        PluginType: Plugin,
     {
         self.cache = data;
-        self.save::<PluginType>();
+        self.save::<PluginType>()?;
         Ok(())
     }
 
-    pub fn save<'a, PluginType>(&self) -> CacheResult<()>
+    pub fn save<PluginType>(&self) -> CacheResult<()>
     where
-        PluginType: Plugin<'a>,
+        PluginType: Plugin,
     {
         let str = serde_json::to_string(&self.cache)?;
 

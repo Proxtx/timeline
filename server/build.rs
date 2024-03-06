@@ -71,7 +71,7 @@ fn main() {
     }};
     
     pub struct Plugins<'a> {{
-        pub plugins: HashMap<String, Box<dyn Plugin<'a> + 'a>>
+        pub plugins: HashMap<String, Box<dyn Plugin + 'a>>
     }}
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
@@ -87,7 +87,7 @@ fn main() {
     }}
 
     impl<'a> Plugins<'a> {{
-        pub async fn init(handler: impl Fn(AvailablePlugins) -> PluginData<'a>) -> Plugins<'a> {{
+        pub async fn init(mut handler: impl FnMut(AvailablePlugins) -> PluginData) -> Plugins<'a> {{
             Plugins {{
                 plugins: HashMap::from([{}])
             }}

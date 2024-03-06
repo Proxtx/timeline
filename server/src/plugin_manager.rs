@@ -1,30 +1,52 @@
+use futures::FutureExt;
 use std::collections::HashMap;
+use std::pin::Pin;
 use std::sync::Arc;
 use tokio::pin;
 use tokio::sync::RwLock;
 
 use crate::Plugin;
 
-type ThreadedPlugin<'a> = Arc<RwLock<Box<dyn Plugin<'a>>>>;
-type PluginsMap<'a> = HashMap<String, ThreadedPlugin<'a>>;
-pub struct PluginManager<'a> {
-    plugins: PluginsMap<'a>,
+type ThreadedPlugin = Arc<RwLock<Box<dyn Plugin>>>;
+type PluginsMap = HashMap<String, ThreadedPlugin>;
+pub struct PluginManager {
+    plugins: PluginsMap,
 }
 
-impl<'a> PluginManager<'a> {
-    pub fn new(plugins: HashMap<String, Box<dyn Plugin<'a>>>) -> Self {
+impl PluginManager {
+    pub fn new(plugins: HashMap<String, Box<dyn Plugin>>) -> Self {
         let plugins: PluginsMap = plugins
             .into_iter()
             .map(|(key, value)| (key, Arc::new(RwLock::new(value))))
             .collect();
+        for (_, plg) in plugins.iter() {
+            let plg = plg.clone();
+            tokio::spawn(async move {
+                PluginManager::update_loop(plg).await;
+            });
+        }
         PluginManager { plugins }
     }
 
-    pub async fn update_loop<'b>(plugin: ThreadedPlugin<'b>) -> Option<chrono::Duration> {
-        /*let mut mut_plg = plugin.write().await;
-        let fut = mut_plg.request_loop();
-        pin!(fut);
-        return fut.await;*/
-        return None;
+    pub fn update_loop(
+        plugin: ThreadedPlugin,
+    ) -> Pin<Box<dyn futures::Future<Output = ()> + Send>> {
+        println!("Execute",);
+        async move {
+            let lptm;
+            {
+                let mut mut_plg = plugin.write().await;
+                let fut = mut_plg.request_loop();
+                pin!(fut);
+                lptm = fut.await;
+            }
+            if let Some(v) = lptm {
+                tokio::time::sleep(v.to_std().unwrap()).await;
+                tokio::spawn(async move {
+                    PluginManager::update_loop(plugin).await;
+                });
+            }
+        }
+        .boxed()
     }
 }
