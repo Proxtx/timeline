@@ -14,9 +14,7 @@ mod plugin_manager;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 #[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
 mod _i1;
-use async_trait::async_trait;
 
-#[async_trait]
 pub trait Plugin: Send + Sync {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
     where
