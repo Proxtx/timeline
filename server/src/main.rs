@@ -3,6 +3,7 @@
 
 use chrono::Duration;
 use db::Database;
+use rocket::fs::FileServer;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::Barrier;
@@ -12,6 +13,7 @@ mod config;
 mod db;
 mod plugin_manager;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
+#[allow(clippy::duplicate_mod)]
 #[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
 mod _i1;
 
@@ -28,9 +30,8 @@ pub trait Plugin: Send + Sync {
     ) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send + 'a>>;
 }
 
-#[tokio::main]
-async fn main() {
-    let bar = Barrier::new(2);
+#[rocket::launch]
+async fn rocket() -> _ {
     let mut config = config::Config::load()
         .await
         .unwrap_or_else(|e| panic!("Unable to init Config: {}", e));
@@ -43,17 +44,18 @@ async fn main() {
             }),
     );
 
-    let mut t = Plugins::init(|plugin| PluginData {
+    let plgs = Plugins::init(|plugin| PluginData {
         database: db.clone(),
         config: config.plugin_config.remove(&plugin),
     })
     .await;
 
-    let mut plgs = HashMap::new();
-    std::mem::swap(&mut t.plugins, &mut plgs);
+    let plugin_manager = plugin_manager::PluginManager::new(plgs.plugins);
 
-    let plugin_manager = plugin_manager::PluginManager::new(plgs);
-    bar.wait().await;
+    let figment = rocket::Config::figment().merge(("port", config.port));
+    rocket::custom(figment)
+        .manage(plugin_manager)
+        .mount("/", FileServer::from("../frontend/dist/"))
 }
 
 pub struct PluginData {
