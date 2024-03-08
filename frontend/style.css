@@ -4,7 +4,11 @@
 }
 
 :root {
-  --accentColor: ;
+  --darkColor: #292f36;
+  --lightColor: #fcfafa;
+  --accentColor1: #2589bd;
+  --accentColor2: #b0413e;
+  --accentColor1Light: #84bbd8;
 }
 
 body {

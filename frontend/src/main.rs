@@ -1,4 +1,10 @@
 use leptos::*;
+use leptos_router::*;
+use stylers::style;
+
+mod wrappers;
+
+use wrappers::{StyledView, TitleBar};
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -7,20 +13,20 @@ fn main() {
 
 #[component]
 fn MainView() -> impl IntoView {
-    view! { <TitleBar title="Hello" description=Some("Whaaazzz up".to_string())/> }
+    view! {
+        <Router>
+            <Routes>
+                <Route path="/timeline/:day" view=Timeline/>
+            </Routes>
+        </Router>
+    }
 }
 
 #[component]
-fn TitleBar(
-    #[prop(into)] title: MaybeSignal<String>,
-    #[prop(into, default=None.into())] description: MaybeSignal<Option<String>>,
-) -> impl IntoView {
+fn Timeline() -> impl IntoView {
     view! {
-        <h1>{title}</h1>
-
-        {move || match description() {
-            Some(v) => view! { <b>{v}</b> }.into_view(),
-            None => view! {}.into_view(),
-        }}
+        <StyledView>
+            <TitleBar title="Hello" description=Some("Whaaazzz up".to_string())/>
+        </StyledView>
     }
 }
