@@ -25,9 +25,17 @@ pub trait Plugin: Send + Sync {
     where
         Self: Sized;
 
-    fn request_loop<'a>(
+    fn request_loop_mut<'a>(
         &'a mut self,
-    ) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send + 'a>>;
+    ) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send + 'a>> {
+        Box::pin(async move {None})
+    }
+
+    fn request_loop<'a> (
+        &'a self
+    ) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send + 'a>> {
+        Box::pin(async move {None})
+    }
 }
 
 #[rocket::launch]

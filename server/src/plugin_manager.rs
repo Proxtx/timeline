@@ -21,11 +21,36 @@ impl PluginManager {
             .collect();
         for (_, plg) in plugins.iter() {
             let plg = plg.clone();
+            let plg_mut = plg.clone();
             tokio::spawn(async move {
                 PluginManager::update_loop(plg).await;
             });
+            tokio::spawn(async move {
+                PluginManager::update_loop_mut(plg_mut).await;
+            });
         }
         PluginManager { plugins }
+    }
+
+    pub fn update_loop_mut(
+        plugin: ThreadedPlugin,
+    ) -> Pin<Box<dyn futures::Future<Output = ()> + Send>> {
+        async move {
+            let lptm;
+            {
+                let mut mut_plg = plugin.write().await;
+                let fut = mut_plg.request_loop_mut();
+                pin!(fut);
+                lptm = fut.await;
+            }
+            if let Some(v) = lptm {
+                tokio::time::sleep(v.to_std().unwrap()).await;
+                tokio::spawn(async move {
+                    PluginManager::update_loop(plugin).await;
+                });
+            }
+        }
+        .boxed()
     }
 
     pub fn update_loop(
@@ -34,7 +59,7 @@ impl PluginManager {
         async move {
             let lptm;
             {
-                let mut mut_plg = plugin.write().await;
+                let mut_plg = plugin.read().await;
                 let fut = mut_plg.request_loop();
                 pin!(fut);
                 lptm = fut.await;
