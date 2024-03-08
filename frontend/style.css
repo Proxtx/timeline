@@ -1,0 +1,12 @@
+@font-face {
+  font-family: Rubik;
+  src: url("Rubik.ttf");
+}
+
+:root {
+  --accentColor: ;
+}
+
+body {
+  font-family: Rubik;
+}
