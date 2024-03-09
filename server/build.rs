@@ -2,12 +2,12 @@
 use std::{env, fmt::Write, fs, path::PathBuf};
 
 fn main() {
-    println!("cargo:rerun-if-changed=plugins/");
+    println!("cargo:rerun-if-changed=../plugins/");
     println!("cargo:rerun-if-changed=build.rs");
     let mut out_path = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     out_path = out_path.join("out");
     out_path.set_file_name("plugins.rs");
-    let plugins: Vec<(String, String)> = fs::read_dir("plugins")
+    let plugins: Vec<(String, String)> = fs::read_dir("../plugins")
         .expect("Plugins Folder not found.")
         .map(|v| {
             let dir_entry = v.expect("unable to read directory");
