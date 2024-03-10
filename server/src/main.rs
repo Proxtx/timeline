@@ -14,7 +14,7 @@ mod db;
 mod plugin_manager;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 #[allow(clippy::duplicate_mod)]
-#[path = "../plugins/timeline_plugin_media_scan/plugin.rs"]
+#[path = "../../plugins/timeline_plugin_media_scan/plugin.rs"]
 mod _i1;
 
 pub trait Plugin: Send + Sync {
