@@ -19,9 +19,11 @@ pub fn TitleBar(
 #[component]
 pub fn StyledView(children: Children) -> impl IntoView {
     let stylers_class = style! {
-        .one {
-            background-color: red;
+        .view {
+            display: flex;
+            flex-direction: column;
+
         }
     };
-    view! { class=stylers_class, <div class="one">{children()}</div> }
+    view! { class=stylers_class, <div class="view">{children()}</div> }
 }

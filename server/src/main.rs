@@ -7,6 +7,11 @@ use rocket::fs::FileServer;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::Barrier;
+use rocket::catch;
+use rocket::catchers;
+use rocket::Request;
+use tokio::fs::File;
+use rocket::response::stream::ReaderStream;
 
 mod cache;
 mod config;
@@ -62,8 +67,18 @@ async fn rocket() -> _ {
 
     let figment = rocket::Config::figment().merge(("port", config.port));
     rocket::custom(figment)
-        .manage(plugin_manager)
-        .mount("/", FileServer::from("../frontend/dist/"))
+    .register("/", catchers![not_found])
+    .manage(plugin_manager)
+    .mount("/", FileServer::from("../frontend/dist/"))
+}
+
+#[catch(404)]
+fn not_found(req: &Request) -> ReaderStream![File] {
+    ReaderStream! {
+        if let Ok(file) = File::open("../frontend/dist/index.html").await {
+            yield file;
+        }
+    }
 }
 
 pub struct PluginData {
