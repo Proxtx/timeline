@@ -4,6 +4,9 @@
 use chrono::Duration;
 use db::Database;
 use rocket::fs::FileServer;
+use rocket::response::content;
+use rocket::response::status;
+use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::Barrier;
@@ -73,11 +76,10 @@ async fn rocket() -> _ {
 }
 
 #[catch(404)]
-fn not_found(req: &Request) -> ReaderStream![File] {
-    ReaderStream! {
-        if let Ok(file) = File::open("../frontend/dist/index.html").await {
-            yield file;
-        }
+async fn not_found(_req: &Request<'_>) -> Result<status::Accepted<content::RawHtml<File>>, io::Error> {
+    match File::open("../frontend/dist/index.html").await {
+        Ok(v) => Ok(status::Accepted(content::RawHtml(v))),
+        Err(e) => Err(e)
     }
 }
 
