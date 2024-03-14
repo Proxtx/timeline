@@ -41,6 +41,14 @@ where
         &mut self.cache
     }
 
+    pub fn modify<PluginType>(&mut self, updater: impl FnOnce(&mut CacheType)) -> CacheResult<()>
+    where 
+        PluginType: Plugin
+    {
+        updater(&mut self.cache);
+        self.save::<PluginType>()
+    }
+
     pub fn update<PluginType>(&mut self, data: CacheType) -> CacheResult<()>
     where
         PluginType: Plugin,
