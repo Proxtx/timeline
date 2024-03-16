@@ -1,12 +1,11 @@
 use chrono::DateTime;
 use chrono::Utc;
-use serde::de::DeserializeOwned;
 use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Serialize;
 use std::fmt;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Marker {
     pub time: DateTime<Utc>,
     pub amount: u32,

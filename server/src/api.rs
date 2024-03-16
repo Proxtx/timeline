@@ -26,9 +26,7 @@ pub mod markers {
         }
 
         let mut events = database
-            .find_events_with_custom_query::<OnlyTimingEvent>(Database::generate_range_filter(range), FindOptions::builder().sort(doc! {
-                "timing.0": 1
-            }).build()).await?;
+            .find_events_with_custom_query::<OnlyTimingEvent>(Database::generate_range_filter(range), FindOptions::builder().projection(doc! {"timing": 1}).build()).await?;
         
         let mut hour_events: HashMap<DateTime<Utc>, u32> = HashMap::new();
 
@@ -43,7 +41,7 @@ pub mod markers {
                 }
             };
 
-            let new_time = time.round_subsecs(1).with_second(0).unwrap().with_minute(0).unwrap();
+            let new_time = time.round_subsecs(0).with_second(0).unwrap().with_minute(0).unwrap();
             match hour_events.get_mut(&new_time) {
                 Some(v) => {
                     *v+=1;
@@ -56,7 +54,7 @@ pub mod markers {
 
         let mut res: Vec<_> = hour_events.into_iter().map(|(time, amount)| Marker {time, amount}).collect();
 
-        res.sort_by(|a, b| a.amount.cmp(&b.amount));
+        res.sort_by(|a, b| b.amount.cmp(&a.amount));
         res = res.into_iter().enumerate().filter(|(index, _elem)| index < &5).map(|(_index, elem)| elem).collect();
 
         Ok(res)

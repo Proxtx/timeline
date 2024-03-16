@@ -66,7 +66,7 @@ impl Database {
         match timing {
             Timing::Instant(time) => {
                 doc! {
-                    "timing": {"$elemMatch": time.timestamp_millis()} 
+                    "timing": {"$elemMatch": time.timestamp_nanos_opt().unwrap()} 
                 }
             }
             Timing::Range(range) => {
@@ -76,8 +76,8 @@ impl Database {
     }
 
     pub fn generate_range_filter(range: &TimeRange) -> Document {
-        let start = range.start.timestamp_millis();
-        let end = range.end.timestamp_millis();
+        let start = range.start.timestamp_nanos_opt().unwrap();
+        let end = range.end.timestamp_nanos_opt().unwrap();
         doc! {
             "timing": {"$elemMatch": {
                 "$gte": start,

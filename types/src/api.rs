@@ -8,7 +8,7 @@ use std::fmt;
 
 pub type APIResult<T: Serialize + DeserializeOwned> = Result<T, APIError>;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum APIError {
     DatabaseError(String),
     AuthenticationError,

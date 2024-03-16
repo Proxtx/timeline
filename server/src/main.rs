@@ -73,8 +73,8 @@ async fn rocket() -> _ {
     .manage(plugin_manager)
     .manage(config)
     .manage(db)
-    .mount("/api", routes![api::markers::get_markers_request])
     .mount("/", FileServer::from("../frontend/dist/"))
+    .mount("/api", routes![api::markers::get_markers_request])
 }
 
 #[catch(404)]
