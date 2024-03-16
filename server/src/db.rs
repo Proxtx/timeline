@@ -6,7 +6,7 @@ use {
         collections::HashMap,
         fmt::{self, format, Write},
         str::FromStr,
-    }, types::{TimeRange, Timing}
+    }, types::timing::{TimeRange, Timing}
 };
 
 pub struct Database {

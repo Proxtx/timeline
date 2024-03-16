@@ -70,6 +70,8 @@ async fn rocket() -> _ {
     rocket::custom(figment)
     .register("/", catchers![not_found])
     .manage(plugin_manager)
+    .manage(config)
+    .manage(db)
     .mount("/", FileServer::from("../frontend/dist/"))
 }
 

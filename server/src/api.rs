@@ -1,13 +1,32 @@
-use crate::db::{Database, DatabaseError, Event};
-use chrono::{DateTime, SubsecRound, Timelike, Utc};
-use futures::StreamExt;
-use mongodb::{bson::{doc, Document}, options::FindOptions};
-use serde::Deserialize;
-use std::{collections::HashMap, fmt};
-use std::sync::Arc;
-use types::{Marker, TimeRange, Timing};
+use types::api::APIResult;
+use types::api::APIError;
+use crate::db::DatabaseError;
+use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
 
-pub async fn get_markers(range: &TimeRange, database: Arc<Database>) -> APIResult<Vec<Marker>> {
+
+#[derive(Deserialize)]
+pub struct APIRequest<T> {
+    auth: String,
+    data: T
+}
+
+pub mod markers {
+    use crate::{config::Config, db::{Database, DatabaseError, Event}};
+    use chrono::{DateTime, SubsecRound, Timelike, Utc};
+    use futures::StreamExt;
+    use mongodb::{bson::{doc, Document}, options::FindOptions};
+    use rocket::{post, request::FromRequest, serde::json::Json, State};
+    use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
+    use std::{collections::HashMap, fmt::{self, format}};
+    use std::sync::Arc;
+    use rocket::response::status;
+    use rocket::http::Status;
+    use types::timing::{Marker, TimeRange, Timing};
+    use types::api::APIError;
+    use types::api::APIResult;
+    use super::APIRequest;
+
+    pub async fn get_markers(range: &TimeRange, database: Arc<Database>) -> APIResult<Vec<Marker>> {
     #[derive(Deserialize)]
     struct OnlyTimingEvent {
         timing: Timing
@@ -49,34 +68,19 @@ pub async fn get_markers(range: &TimeRange, database: Arc<Database>) -> APIResul
 
     Ok(res)
 }
-
-pub type APIResult<T> = Result<T, APIError>;
-
-#[derive(Debug)]
-pub enum APIError {
-    DatabaseError(DatabaseError),
-}
-
-impl std::error::Error for APIError {}
-
-impl fmt::Display for APIError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::DatabaseError(e) => {
-                write!(f, "Error executing API Request. Database Error: {}", e)
-            }
+    #[post("/markers", data="<request>")]
+    pub async fn get_markers_request(request: Json<APIRequest<TimeRange>>, config: &State<Config>, database: &State<Arc<Database>>) -> status::Custom<Json<APIResult<Vec<Marker>>>> {
+        if request.auth != config.password {
+            return status::Custom(Status::Unauthorized, Json(Err(APIError::AuthenticationError)));
         }
+
+        unimplemented!()
     }
 }
+
 
 impl From<DatabaseError> for APIError {
     fn from(value: DatabaseError) -> Self {
-        Self::DatabaseError(value)
-    }
-}
-
-impl From<mongodb::error::Error> for APIError {
-    fn from(value: mongodb::error::Error) -> Self {
-        Self::DatabaseError(DatabaseError::MongoDBError(value))
+        Self::DatabaseError(format!("{}", value))
     }
 }
