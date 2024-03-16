@@ -1,6 +1,7 @@
 use leptos::*;
 use leptos_router::*;
 
+mod api;
 mod timeline;
 mod wrappers;
 

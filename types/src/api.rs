@@ -12,6 +12,9 @@ pub type APIResult<T: Serialize + DeserializeOwned> = Result<T, APIError>;
 pub enum APIError {
     DatabaseError(String),
     AuthenticationError,
+    #[cfg(feature = "reqwest")]
+    RequestError(String),
+    SerdeJsonError(String),
 }
 
 impl std::error::Error for APIError {}
@@ -28,6 +31,13 @@ impl fmt::Display for APIError {
                     "Error execution API Request: Authentication Error: Password is wrong"
                 )
             }
+            #[cfg(feature = "reqwest")]
+            Self::RequestError(str) => {
+                write!(f, "Request Error: {}", str)
+            }
+            Self::SerdeJsonError(txt) => {
+                write!(f, "Error converting data to/from json: {}", txt)
+            }
         }
     }
 }
@@ -36,5 +46,18 @@ impl fmt::Display for APIError {
 impl From<mongodb::error::Error> for APIError {
     fn from(value: mongodb::error::Error) -> Self {
         Self::DatabaseError(format!("{}", value))
+    }
+}
+
+#[cfg(feature = "reqwest")]
+impl From<reqwest::Error> for APIError {
+    fn from(value: reqwest::Error) -> Self {
+        Self::RequestError(format!("{}", value))
+    }
+}
+
+impl From<serde_json::Error> for APIError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::SerdeJsonError(format!("{}", value))
     }
 }

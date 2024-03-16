@@ -2151,6 +2151,7 @@ dependencies = [
  "chrono",
  "mongodb",
  "serde",
+ "serde_json",
 ]
 
 [[package]]

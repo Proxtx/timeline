@@ -6,6 +6,7 @@ use db::Database;
 use rocket::fs::FileServer;
 use rocket::response::content;
 use rocket::response::status;
+use rocket::routes;
 use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -72,6 +73,7 @@ async fn rocket() -> _ {
     .manage(plugin_manager)
     .manage(config)
     .manage(db)
+    .mount("/api", routes![api::markers::get_markers_request])
     .mount("/", FileServer::from("../frontend/dist/"))
 }
 

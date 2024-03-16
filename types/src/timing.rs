@@ -12,7 +12,7 @@ pub struct Marker {
     pub amount: u32,
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub struct TimeRange {
     pub start: chrono::DateTime<Utc>,
     pub end: chrono::DateTime<Utc>,
