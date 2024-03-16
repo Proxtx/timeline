@@ -7,7 +7,7 @@ use std::fmt;
 
 pub struct Marker {
     pub time: DateTime<Utc>,
-    pub amount: u8,
+    pub amount: u32,
 }
 
 #[derive(Debug, PartialEq, Eq)]

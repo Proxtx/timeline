@@ -1,13 +1,12 @@
 use {
     crate::AvailablePlugins, chrono::{DateTime, Utc}, futures::StreamExt, mongodb::{
-        bson::{doc, Document}, error::Error as MongoDBError, results::InsertManyResult, Client, Collection,
-        Database as MongoDatabase,
+        bson::{doc, Document}, error::Error as MongoDBError, options::FindOptions, results::InsertManyResult, Client, Collection, Cursor, Database as MongoDatabase
     }, serde::{de::Visitor, Deserialize, Serialize}, std::{
         borrow::BorrowMut,
         collections::HashMap,
         fmt::{self, format, Write},
         str::FromStr,
-    }, types::Timing
+    }, types::{TimeRange, Timing}
 };
 
 pub struct Database {
@@ -21,6 +20,10 @@ impl Database {
         client.list_database_names(None, None).await?;
 
         Ok(Database { database })
+    }
+
+    pub async fn find_events_with_custom_query<T> (&self, filter: impl Into<Option<Document>>, options: impl Into<Option<FindOptions>>) -> DatabaseResult<Cursor<T>> {
+        Ok(self.database.collection("events").find(filter, options).await?)
     }
 
     pub async fn register_single_event<T>(&self, event: &Event<T>) -> DatabaseResult<()>
@@ -59,15 +62,29 @@ impl Database {
             .to_le())
     }
 
-    /*pub fn generate_timing_filter(timing: &Timing) -> Document {
+    pub fn generate_timing_filter(timing: &Timing) -> Document {
         match timing {
             Timing::Instant(time) => {
                 doc! {
-
+                    "timing": {"$elemMatch": time.timestamp_millis()} 
                 }
             }
+            Timing::Range(range) => {
+                Database::generate_range_filter(range)
+            }
         }
-    } */
+    }
+
+    pub fn generate_range_filter(range: &TimeRange) -> Document {
+        let start = range.start.timestamp_millis();
+        let end = range.end.timestamp_millis();
+        doc! {
+            "timing": {"$elemMatch": {
+                "$gte": start,
+                "$lt": end
+            }}
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
