@@ -16,14 +16,12 @@ use rocket::Request;
 use tokio::fs::File;
 use rocket::response::stream::ReaderStream;
 
+mod api;
 mod cache;
 mod config;
 mod db;
 mod plugin_manager;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
-#[allow(clippy::duplicate_mod)]
-#[path = "E:/Dev/Rust/timeline/plugins/timeline_plugin_media_scan/plugin.rs"]
-mod _i1;
 
 pub trait Plugin: Send + Sync {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send

@@ -3,16 +3,50 @@ use stylers::style;
 
 #[component]
 pub fn TitleBar(
-    #[prop(into)] title: MaybeSignal<String>,
-    #[prop(into, default=None.into())] description: MaybeSignal<Option<String>>,
+    #[prop(into, default=None.into())] subtitle: MaybeSignal<Option<String>>,
 ) -> impl IntoView {
-    view! {
-        <h1>{title}</h1>
+    let style = style! {
+        .wrapper {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            flex-direction: column;
+            background-color: var(--darkColor);
+            --padding: calc(var(--contentSpacing) * 3.5);
+            padding-top: var(--padding);
+            padding-bottom: var(--padding);
+            gap: calc(var(--contentSpacing) * 1.5);
+        }
 
-        {move || match description() {
-            Some(v) => view! { <b>{v}</b> }.into_view(),
-            None => view! {}.into_view(),
-        }}
+        .titleWrapper {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: var(--contentSpacing);
+        }
+
+        .logo {
+            height: 40px;
+        }
+
+        .subtitle {
+            color: var(--accentColor1);
+        }
+    };
+
+    view! { class=style,
+        <div class="wrapper">
+            <div class="titleWrapper">
+                <img src="/icons/logo_transparent.png" class="logo"/>
+                <h1 class="title">Timeline</h1>
+            </div>
+            {move || match subtitle() {
+                Some(v) => view! { class=style, <a class="subtitle">{v}</a> }.into_view(),
+                None => view! {}.into_view(),
+            }}
+
+        </div>
     }
 }
 
@@ -22,7 +56,7 @@ pub fn StyledView(children: Children) -> impl IntoView {
         .view {
             display: flex;
             flex-direction: column;
-
+            width: 100%;
         }
     };
     view! { class=stylers_class, <div class="view">{children()}</div> }

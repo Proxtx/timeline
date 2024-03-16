@@ -6,10 +6,12 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+chrono = "0.4.35"
 console_error_panic_hook = "0.1.7"
 leptos = { version = "0.6.9", features = ["csr", "nightly"] }
 leptos_router = { version = "0.6.9", features = ["csr"] }
 stylers = "1.0.0-alpha"
+types = {path = "../types/"}
 
 [build-dependencies]
 stylers = "1.0.0-alpha"

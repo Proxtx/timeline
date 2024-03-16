@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_router::*;
-use stylers::style;
 
+mod timeline;
 mod wrappers;
 
 use wrappers::{StyledView, TitleBar};
@@ -26,7 +26,7 @@ fn MainView() -> impl IntoView {
 fn Timeline() -> impl IntoView {
     view! {
         <StyledView>
-            <TitleBar title="Hello" description=Some("Whaaazzz up".to_string())/>
+            <TitleBar subtitle=Some("Whaaazzz up".to_string())/>
         </StyledView>
     }
 }

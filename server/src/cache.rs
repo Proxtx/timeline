@@ -37,10 +37,6 @@ where
         &self.cache
     }
 
-    pub fn get_mut(&mut self) -> &mut CacheType {
-        &mut self.cache
-    }
-
     pub fn modify<PluginType>(&mut self, updater: impl FnOnce(&mut CacheType)) -> CacheResult<()>
     where 
         PluginType: Plugin

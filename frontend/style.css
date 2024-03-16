@@ -5,12 +5,33 @@
 
 :root {
   --darkColor: #292f36;
+  --darkColorLight: #86888c;
   --lightColor: #fcfafa;
+  --lighterColor: #c9c9cb;
   --accentColor1: #2589bd;
-  --accentColor2: #b0413e;
   --accentColor1Light: #84bbd8;
+  --accentColor2: #b0413e;
+  --accentColor2Light: #d29291;
+  --accentColor2Darker: #803a3b;
+  --contentSpacing: 12px;
 }
 
 body {
   font-family: Rubik;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 0;
+  padding: 0;
+}
+
+.title {
+  color: var(--lightColor);
 }
