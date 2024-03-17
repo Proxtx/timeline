@@ -60,11 +60,14 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
 
     let range_moved = range.clone();
     let range_moved_even_more = range.clone();
+    let (indicator_is_dragged, set_indicator_is_dragged) = create_signal(false);
+    
     let handle_pointer_event_move =  move |e: TouchEvent| {
-        handle_pointer_event(e, &range_moved.get())
+        if indicator_is_dragged() {
+            handle_pointer_event(e, &range_moved.get())
+        }
     };
 
-    let (indicator_is_dragged, set_indicator_is_dragged) = create_signal(false);
 
     view! { class=style,
         <div class="timeline" class:loading=move || resource().is_none()>
