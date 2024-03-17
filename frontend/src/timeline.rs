@@ -81,6 +81,7 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
                 src="/icons/pointer.svg"
                 class="pointer"
                 on:touchstart=move |e| {
+                    set_indicator_is_dragged(true);
                     handle_pointer_event(e, &range_moved_even_more.get());
                 }
 
@@ -89,8 +90,6 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
                 on:touchcancel=move |e| { set_indicator_is_dragged.set(false) }
 
                 on:touchmove=move |e| { handle_pointer_event_move(e) }
-
-                on:mousemove=move |e| { logging::log!("{}", e.page_x()) }
             />
 
         </div>
