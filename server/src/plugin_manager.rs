@@ -46,7 +46,7 @@ impl PluginManager {
             if let Some(v) = lptm {
                 tokio::time::sleep(v.to_std().unwrap()).await;
                 tokio::spawn(async move {
-                    PluginManager::update_loop(plugin).await;
+                    PluginManager::update_loop_mut(plugin).await;
                 });
             }
         }
