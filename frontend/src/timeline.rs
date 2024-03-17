@@ -1,12 +1,10 @@
-use std::ops::Deref;
-
 use chrono::DateTime;
+use chrono::TimeDelta;
 use chrono::Utc;
 use leptos::*;
 use stylers::style;
 use types::timing::Marker;
 use types::timing::TimeRange;
-use web_sys::js_sys::Float32Array;
 use web_sys::wasm_bindgen::JsCast;
 use web_sys::HtmlElement;
 use crate::api::api_request;
@@ -51,11 +49,19 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
         }
     };
 
-    let handle_pointer_event = |e: TouchEvent| {
+    let handle_pointer_event = move |e: TouchEvent, range: &TimeRange| {
         let pos_percent = e.touches().item(0).unwrap().page_x() as f64 / leptos::window().inner_width().unwrap().as_f64().unwrap() * 100.;
         e.target().unwrap().dyn_into::<HtmlElement>().unwrap().style().set_property("left", &format!("{}%", pos_percent)).unwrap();
-        //let range = map_range(from_range, to_range, s)
-        //callback
+        let start_time_milis = map_range((0., 100.), (range.start.timestamp_millis() as f64, range.end.timestamp_millis() as f64), pos_percent);
+        let start_time: DateTime<Utc> = DateTime::from_timestamp_millis(start_time_milis as i64).unwrap();
+        let end_time = start_time.checked_add_signed(TimeDelta::try_hours(1).unwrap()).unwrap();
+        callback(TimeRange { start: start_time, end: end_time })
+    };
+
+    let range_moved = range.clone();
+    let range_moved_even_more = range.clone();
+    let handle_pointer_event_move =  move |e: TouchEvent| {
+        handle_pointer_event(e, &range_moved.get())
     };
 
     let (indicator_is_dragged, set_indicator_is_dragged) = create_signal(false);
@@ -64,7 +70,7 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
         <div class="timeline" class:loading=move || resource().is_none()>
 
             {move || match resource.get() {
-                None => view! { <a>"Loading"</a> }.into_view(),
+                None => view! {}.into_view(),
                 Some(data) => view! { {get_circles(&range(), &data.unwrap())} }.into_view(),
             }}
 
@@ -72,19 +78,14 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
                 src="/icons/pointer.svg"
                 class="pointer"
                 on:touchstart=move |e| {
-                    handle_pointer_event(e);
-                    set_indicator_is_dragged.set(true)
+                    handle_pointer_event(e, &range_moved_even_more.get());
                 }
 
                 on:touchend=move |e| { set_indicator_is_dragged.set(false) }
 
                 on:touchcancel=move |e| { set_indicator_is_dragged.set(false) }
 
-                on:touchmove=move |e| {
-                    if indicator_is_dragged() {
-                        handle_pointer_event(e);
-                    }
-                }
+                on:touchmove=move |e| { handle_pointer_event_move(e) }
 
                 on:mousemove=move |e| { logging::log!("{}", e.page_x()) }
             />
@@ -111,12 +112,22 @@ pub fn get_circles(
 
 
     let style = style! {
+        @keyframes popIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
         .circle {
             position: absolute;
             background-color: #006ba39c;
             aspect-ratio: 1;
             border-radius: 50%;
             transform: translate(-50%, -50%);
+            animation: popIn 1s;
         }
     };
 

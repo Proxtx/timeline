@@ -1,5 +1,6 @@
+use leptos::logging;
 use reqwest::Client;
-use types::api::APIResult;
+use types::api::{APIError, APIResult};
 use url::Url;
 
 pub async fn api_request<T, V>(endpoint: &str, request: &V) -> APIResult<T>
@@ -9,5 +10,22 @@ V: serde::Serialize,
 {
     let client = Client::new();
     let url = Url::parse(&leptos::window().origin()).unwrap().join(&format!("/api{}", endpoint)).unwrap();
-    serde_json::from_str(&client.post(url).body(serde_json::to_string(request)?).send().await?.text().await?)?
+    let res = serde_json::from_str::<APIResult<T>>(&client.post(url).body(serde_json::to_string(request)?).send().await?.text().await?)?;
+    match res {
+        Ok(v) => {
+            APIResult::Ok(v)
+        }
+        Err(e) => {
+            logging::log!("{:?}", e);
+            match e {
+                APIError::AuthenticationError => {
+                    leptos::window().location().set_pathname("/login").unwrap();
+                    Err(e)
+                }
+                e => {
+                    Err(e)
+                } 
+            }
+        }
+    }
 }
