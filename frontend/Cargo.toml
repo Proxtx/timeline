@@ -10,12 +10,14 @@ chrono = "0.4.35"
 console_error_panic_hook = "0.1.7"
 leptos = { version = "0.6.9", features = ["csr", "nightly"] }
 leptos_router = { version = "0.6.9", features = ["csr"] }
+rand = "0.8.5"
 reqwest = "0.11.26"
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 stylers = "1.0.0-alpha"
 types = {path = "../types/", features = ["reqwest"]}
 url = { version = "2.5.0", features = ["serde"] }
+web-sys = { version = "0.3.69", features = ["TouchList", "TouchEvent", "Touch"] }
 
 [build-dependencies]
 stylers = "1.0.0-alpha"

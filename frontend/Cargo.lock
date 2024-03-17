@@ -428,12 +428,14 @@ dependencies = [
  "console_error_panic_hook",
  "leptos",
  "leptos_router",
+ "rand",
  "reqwest",
  "serde",
  "serde_json",
  "stylers",
  "types",
  "url",
+ "web-sys",
 ]
 
 [[package]]
