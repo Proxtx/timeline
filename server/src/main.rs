@@ -17,6 +17,7 @@ use rocket::catch;
 use rocket::catchers;
 use rocket::Request;
 use tokio::fs::File;
+use types::api::AvailablePlugins;
 use rocket::response::stream::ReaderStream;
 
 mod api;

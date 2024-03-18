@@ -45,11 +45,6 @@ fn main() {
         );
         output
     });
-    let as_enum = plugins
-        .iter()
-        .map(|v| v.0.to_string())
-        .intersperse(String::from(','))
-        .collect::<String>();
     let init_str = plugins
         .iter()
         .map(|v| {
@@ -74,18 +69,6 @@ fn main() {
         pub plugins: HashMap<AvailablePlugins, Box<dyn Plugin + 'a>>
     }}
 
-    #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
-    #[allow(non_camel_case_types)]
-    pub enum AvailablePlugins {{
-        {}
-    }}
-
-    impl fmt::Display for AvailablePlugins {{
-        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {{
-            write!(f, \"{{:?}}\", self)
-        }}
-    }}
-
     impl<'a> Plugins<'a> {{
         pub async fn init(mut handler: impl FnMut(AvailablePlugins) -> PluginData) -> Plugins<'a> {{
             Plugins {{
@@ -94,7 +77,7 @@ fn main() {
         }}
     }}
     ",
-        mod_str, as_enum, init_str
+        mod_str, init_str
     );
     fs::write(out_path, importer).expect("Unable to write plugins file");
 }

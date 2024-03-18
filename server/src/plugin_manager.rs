@@ -34,22 +34,22 @@ impl PluginManager {
         PluginManager { plugins }
     }
 
-    pub async fn get_compress_events(&self, time_range: &TimeRange) -> APIResult<Vec<crate::CompressedEvent>> {
+    pub async fn get_compress_events(&self, time_range: &TimeRange) -> APIResult<HashMap<AvailablePlugins, Vec<crate::CompressedEvent>>> {
         let mut futures = futures::stream::FuturesUnordered::new();
-        for (_name, plugin) in self.plugins.iter() {
+        for (name, plugin) in self.plugins.iter() {
             futures.push(async move{
-                plugin.read().await.get_compressed_events(&time_range).await
+                (name.clone(), plugin.read().await.get_compressed_events(&time_range).await)
             })
         }
 
-        let mut compressed_events = Vec::new();
+        let mut app_events = HashMap::new();
 
-        while let Some(v) = futures.next().await {
-            compressed_events.append(&mut v?);
+        while let Some((name, compressed_events)) = futures.next().await {
+            app_events.insert(name, compressed_events?);
         }
 
 
-        Ok(compressed_events)
+        Ok(app_events)
     }
 
     pub fn update_loop_mut(

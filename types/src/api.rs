@@ -6,6 +6,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use std::fmt;
 
+include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
+
 pub type APIResult<T: Serialize + DeserializeOwned> = Result<T, APIError>;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -72,12 +74,8 @@ impl From<serde_json::Error> for APIError {
 
 pub struct CompressedEvent {
     #[cfg(feature = "server")]
-    data: Box<dyn erased_serde::Serialize>,
+    pub data: Box<dyn erased_serde::Serialize + Sync + Send>,
     #[cfg(feature = "client")]
-    data: String,
-    time: crate::timing::TimeRange,
+    pub data: String,
+    pub time: crate::timing::Timing,
 }
-
-/*pub struct AppEvents {
-    app: AvailablePlugins
-}*/
