@@ -1,20 +1,22 @@
-use futures::FutureExt;
+use futures::{FutureExt, StreamExt};
+use types::api::APIResult;
+use types::timing::TimeRange;
 use std::collections::HashMap;
 use std::pin::Pin;
 use std::sync::Arc;
 use tokio::pin;
 use tokio::sync::RwLock;
 
-use crate::Plugin;
+use crate::{AvailablePlugins, CompressedEvent, Plugin};
 
 type ThreadedPlugin = Arc<RwLock<Box<dyn Plugin>>>;
-type PluginsMap = HashMap<String, ThreadedPlugin>;
+type PluginsMap = HashMap<AvailablePlugins, ThreadedPlugin>;
 pub struct PluginManager {
     plugins: PluginsMap,
 }
 
 impl PluginManager {
-    pub fn new(plugins: HashMap<String, Box<dyn Plugin>>) -> Self {
+    pub fn new(plugins: HashMap<AvailablePlugins, Box<dyn Plugin>>) -> Self {
         let plugins: PluginsMap = plugins
             .into_iter()
             .map(|(key, value)| (key, Arc::new(RwLock::new(value))))
@@ -30,6 +32,24 @@ impl PluginManager {
             });
         }
         PluginManager { plugins }
+    }
+
+    pub async fn get_compress_events(&self, time_range: &TimeRange) -> APIResult<Vec<crate::CompressedEvent>> {
+        let mut futures = futures::stream::FuturesUnordered::new();
+        for (_name, plugin) in self.plugins.iter() {
+            futures.push(async move{
+                plugin.read().await.get_compressed_events(&time_range).await
+            })
+        }
+
+        let mut compressed_events = Vec::new();
+
+        while let Some(v) = futures.next().await {
+            compressed_events.append(&mut v?);
+        }
+
+
+        Ok(compressed_events)
     }
 
     pub fn update_loop_mut(

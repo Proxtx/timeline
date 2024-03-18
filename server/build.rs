@@ -54,7 +54,7 @@ fn main() {
         .iter()
         .map(|v| {
             format!(
-                "(\"{}\".to_string(), Box::new({}::Plugin::new(handler(AvailablePlugins::{})).await) as Box<dyn Plugin>)",
+                "(AvailablePlugins::{}, Box::new({}::Plugin::new(handler(AvailablePlugins::{})).await) as Box<dyn Plugin>)",
                 v.0, v.0, &v.0
             )
         })
@@ -71,7 +71,7 @@ fn main() {
     }};
     
     pub struct Plugins<'a> {{
-        pub plugins: HashMap<String, Box<dyn Plugin + 'a>>
+        pub plugins: HashMap<AvailablePlugins, Box<dyn Plugin + 'a>>
     }}
 
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]

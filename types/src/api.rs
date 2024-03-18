@@ -12,9 +12,10 @@ pub type APIResult<T: Serialize + DeserializeOwned> = Result<T, APIError>;
 pub enum APIError {
     DatabaseError(String),
     AuthenticationError,
-    #[cfg(feature = "reqwest")]
+    #[cfg(feature = "client")]
     RequestError(String),
     SerdeJsonError(String),
+    PluginError(String),
 }
 
 impl std::error::Error for APIError {}
@@ -31,25 +32,32 @@ impl fmt::Display for APIError {
                     "Error execution API Request: Authentication Error: Password is wrong"
                 )
             }
-            #[cfg(feature = "reqwest")]
+            #[cfg(feature = "client")]
             Self::RequestError(str) => {
                 write!(f, "Request Error: {}", str)
             }
             Self::SerdeJsonError(txt) => {
                 write!(f, "Error converting data to/from json: {}", txt)
             }
+            Self::PluginError(txt) => {
+                write!(
+                    f,
+                    "Error executing API Request. Encountered a plugin error: {}",
+                    txt
+                )
+            }
         }
     }
 }
 
-#[cfg(feature = "mongodb")]
+#[cfg(feature = "server")]
 impl From<mongodb::error::Error> for APIError {
     fn from(value: mongodb::error::Error) -> Self {
         Self::DatabaseError(format!("{}", value))
     }
 }
 
-#[cfg(feature = "reqwest")]
+#[cfg(feature = "client")]
 impl From<reqwest::Error> for APIError {
     fn from(value: reqwest::Error) -> Self {
         Self::RequestError(format!("{}", value))
@@ -61,3 +69,15 @@ impl From<serde_json::Error> for APIError {
         Self::SerdeJsonError(format!("{}", value))
     }
 }
+
+pub struct CompressedEvent {
+    #[cfg(feature = "server")]
+    data: Box<dyn erased_serde::Serialize>,
+    #[cfg(feature = "client")]
+    data: String,
+    time: crate::timing::TimeRange,
+}
+
+/*pub struct AppEvents {
+    app: AvailablePlugins
+}*/

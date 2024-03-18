@@ -7,6 +7,8 @@ use rocket::fs::FileServer;
 use rocket::response::content;
 use rocket::response::status;
 use rocket::routes;
+use types::api::CompressedEvent;
+use types::timing::TimeRange;
 use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
@@ -43,6 +45,8 @@ pub trait Plugin: Send + Sync {
     ) -> Pin<Box<dyn futures::Future<Output = Option<Duration>> + Send + 'a>> {
         Box::pin(async move {None})
     }
+
+    fn get_compressed_events (&self, query_range: &TimeRange) -> Pin<Box<dyn futures::Future<Output = types::api::APIResult<Vec<CompressedEvent>>> + Send>>;
 }
 
 #[rocket::launch]

@@ -434,6 +434,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
+name = "erased-serde"
+version = "0.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b73807008a3c7f171cc40312f37d95ef0396e048b5848d775f54b1a4dd4a0d3"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "errno"
 version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1655,6 +1664,7 @@ name = "server"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "erased-serde",
  "futures",
  "mongodb",
  "rocket",
@@ -2149,6 +2159,7 @@ name = "types"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "erased-serde",
  "mongodb",
  "serde",
  "serde_json",
