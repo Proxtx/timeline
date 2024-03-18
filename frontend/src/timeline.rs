@@ -52,7 +52,9 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
     let handle_pointer_event = move |e: TouchEvent, range: &TimeRange| {
         let pos_percent = e.touches().item(0).unwrap().page_x() as f64 / leptos::window().inner_width().unwrap().as_f64().unwrap() * 100.;
         e.target().unwrap().dyn_into::<HtmlElement>().unwrap().style().set_property("left", &format!("{}%", pos_percent)).unwrap();
+
         let start_time_milis = map_range((0., 100.), (range.start.timestamp_millis() as f64, range.end.timestamp_millis() as f64), pos_percent);
+        
         let start_time: DateTime<Utc> = DateTime::from_timestamp_millis(start_time_milis as i64).unwrap();
         let end_time = start_time.checked_add_signed(TimeDelta::try_hours(1).unwrap()).unwrap();
         callback(TimeRange { start: start_time, end: end_time })

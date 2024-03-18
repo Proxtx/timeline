@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::DateTime;
 use leptos::*;
 use leptos_router::*;
@@ -6,8 +8,10 @@ mod api;
 mod timeline;
 mod wrappers;
 
-use types::timing::TimeRange;
+use types::{api::AvailablePlugins, timing::TimeRange};
 use wrappers::{StyledView, TitleBar};
+
+use crate::api::api_request;
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -27,7 +31,12 @@ fn MainView() -> impl IntoView {
 
 #[component]
 fn Timeline() -> impl IntoView {
-    let clbkc = |_| {};
+    let clbkc = |range: TimeRange| {
+        spawn_local(async move {
+            let t: Result<HashMap<AvailablePlugins, >, _> = api_request("/events", &range).await;
+            logging::log!("{:?}", t);
+        });
+    };
     let range = TimeRange {
         start: DateTime::parse_from_str(
             "2024 Jan 13 12:09:14.274 +0000",

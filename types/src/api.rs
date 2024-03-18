@@ -4,6 +4,7 @@ use serde::de::DeserializeOwned;
 use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::Serializer;
 use std::fmt;
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
@@ -75,8 +76,19 @@ impl From<serde_json::Error> for APIError {
 #[derive(Serialize)]
 pub struct CompressedEvent {
     #[cfg(feature = "server")]
+    #[serde(serialize_with = "serialize_data")]
     pub data: Box<dyn erased_serde::Serialize + Sync + Send>,
     #[cfg(feature = "client")]
     pub data: String,
     pub time: crate::timing::Timing,
+}
+
+fn serialize_data<S: Serializer>(
+    data: &Box<dyn erased_serde::Serialize + Sync + Send>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+    serializer.serialize_str(&match serde_json::to_string(data) {
+        Ok(v) => v,
+        Err(e) => return Err(serde::ser::Error::custom(format!("{}", e))),
+    })
 }
