@@ -72,6 +72,7 @@ impl From<serde_json::Error> for APIError {
     }
 }
 
+#[derive(Serialize)]
 pub struct CompressedEvent {
     #[cfg(feature = "server")]
     pub data: Box<dyn erased_serde::Serialize + Sync + Send>,

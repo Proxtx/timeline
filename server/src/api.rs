@@ -1,5 +1,8 @@
+use rocket::http::CookieJar;
+use rocket::State;
 use types::api::APIResult;
 use types::api::APIError;
+use crate::config::Config;
 use crate::db::DatabaseError;
 use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
 
@@ -18,6 +21,8 @@ pub mod markers {
     use types::api::APIError;
     use types::api::APIResult;
     use rocket::http::CookieJar;
+
+    use super::auth;
 
     pub async fn get_markers(range: &TimeRange, database: &Database) -> APIResult<Vec<Marker>> {
         #[derive(Deserialize)]
@@ -61,16 +66,57 @@ pub mod markers {
     }
     #[post("/markers", data="<request>")]
     pub async fn get_markers_request(request: Json<TimeRange>, config: &State<Config>, database: &State<Arc<Database>>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<Vec<Marker>>>> {
-        let pwd = match cookies.get("pwd") {
-            Some(v) => v,
-            None => return status::Custom(Status::Unauthorized, Json(Err(APIError::AuthenticationError)))
-        };
-        if pwd.value() != config.password {
-            status::Custom(Status::Unauthorized, Json(Err(APIError::AuthenticationError)))
+        if let Err(e) = auth(&cookies, &config) {
+            return status::Custom(Status::Unauthorized, Json(Err(e)));
         }
         else {
             status::Custom(Status::Ok, Json(get_markers(&request, database).await))
         }
+    }
+}
+
+pub mod events {
+    use std::collections::HashMap;
+    use crate::{config::Config, db::{Database, DatabaseError, Event}};
+    use chrono::{DateTime, SubsecRound, Timelike, Utc};
+    use futures::StreamExt;
+    use mongodb::{bson::{doc, Document}, options::FindOptions};
+    use rocket::{post, request::FromRequest, serde::json::Json, State};
+    use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
+    use std::{fmt::{self, format}};
+    use std::sync::Arc;
+    use rocket::response::status;
+    use rocket::http::Status;
+    use types::timing::{Marker, TimeRange, Timing};
+    use types::api::APIError;
+    use types::api::APIResult;
+    use rocket::http::CookieJar;
+
+    use rocket::{};
+    use types::api::{AvailablePlugins, CompressedEvent};
+
+    use crate::plugin_manager::{PluginManager};
+
+    use super::auth;
+
+    #[post("/events", data="<request>")]
+    pub async fn get_events(request: Json<TimeRange>, config: &State<Config>, plugin_manager: &State<PluginManager>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<HashMap<AvailablePlugins, Vec<CompressedEvent>>>>> {
+        if let Err(e) = auth(&cookies, &config) {
+            return status::Custom(Status::Unauthorized, Json(Err(e)));
+        }
+        match plugin_manager.get_compress_events(&request).await {
+            Ok(v) => status::Custom(Status::Ok, Json(Ok(v))),
+            Err(e) => status::Custom(Status::InternalServerError, Json(Err(e)))
+        }
+    }
+}
+
+fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
+    match cookies.get("pwd") {
+            Some(pwd) => if pwd.value() != config.password {
+                Err(APIError::AuthenticationError)
+            }else {Ok(())},
+            None => return Err(APIError::AuthenticationError)
     }
 }
 
