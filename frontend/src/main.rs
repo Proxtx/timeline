@@ -6,6 +6,7 @@ mod api;
 mod timeline;
 mod wrappers;
 mod plugin_manager;
+mod event_manager;
 
 use plugin_manager::{Plugin, PluginData};
 use serde::Deserialize;
