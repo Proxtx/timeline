@@ -1,10 +1,20 @@
 #![feature(iter_intersperse)]
-use std::{env, fmt::Write, fs, path::PathBuf};
+use std::{
+    env,
+    fmt::Write,
+    fs,
+    path::{Path, PathBuf},
+};
 use stylers::build;
 
 fn main() {
     println!("cargo:rerun-if-changed=../plugins/");
     println!("cargo:rerun-if-changed=build.rs");
+    fs::copy(
+        PathBuf::from("./src/client.rs"),
+        PathBuf::from("../plugins/timeline_plugin_media_scan/client.rs"),
+    )
+    .unwrap();
     build(Some(String::from("./target/generated.css")));
     let mut out_path = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     out_path = out_path.join("out");
@@ -63,7 +73,6 @@ fn main() {
     {}
 
     use {{
-        serde::{{Serialize, Deserialize}},
         std::{{fmt, collections::HashMap}}
     }};
     
