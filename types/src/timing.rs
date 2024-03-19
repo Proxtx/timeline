@@ -65,7 +65,7 @@ impl<'de> Deserialize<'de> for Timing {
     where
         D: serde::Deserializer<'de>,
     {
-        deserializer.deserialize_map(TimingVisitor)
+        deserializer.deserialize_seq(TimingVisitor)
     }
 }
 

@@ -73,20 +73,24 @@ impl From<serde_json::Error> for APIError {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
+#[cfg_attr(feature = "client", derive(Deserialize))]
 pub struct CompressedEvent {
-    #[cfg(feature = "server")]
     #[serde(serialize_with = "serialize_data")]
+    #[cfg(feature = "server")]
     pub data: Box<dyn erased_serde::Serialize + Sync + Send>,
     #[cfg(feature = "client")]
     pub data: String,
     pub time: crate::timing::Timing,
 }
 
-fn serialize_data<S: Serializer>(
+pub fn serialize_data<S>(
     data: &Box<dyn erased_serde::Serialize + Sync + Send>,
     serializer: S,
-) -> Result<S::Ok, S::Error> {
+) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
     serializer.serialize_str(&match serde_json::to_string(data) {
         Ok(v) => v,
         Err(e) => return Err(serde::ser::Error::custom(format!("{}", e))),

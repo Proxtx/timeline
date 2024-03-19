@@ -23,7 +23,7 @@ fn main() {
                 .into_string()
                 .expect("unable to parse filename");
             let mut path = dir_entry.path();
-            path.push("plugin.rs");
+            path.push("server.rs");
             (
                 name,
                 fs::canonicalize(&path)

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use chrono::DateTime;
 use leptos::*;
 use leptos_router::*;
@@ -8,10 +6,13 @@ mod api;
 mod timeline;
 mod wrappers;
 
-use types::{api::AvailablePlugins, timing::TimeRange};
+use serde::Deserialize;
+use types::{api::{AvailablePlugins, CompressedEvent}, timing::TimeRange};
 use wrappers::{StyledView, TitleBar};
 
 use crate::api::api_request;
+
+include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -33,7 +34,7 @@ fn MainView() -> impl IntoView {
 fn Timeline() -> impl IntoView {
     let clbkc = |range: TimeRange| {
         spawn_local(async move {
-            let t: Result<HashMap<AvailablePlugins, >, _> = api_request("/events", &range).await;
+            let t: Result<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _> = api_request("/events", &range).await;
             logging::log!("{:?}", t);
         });
     };
@@ -55,4 +56,12 @@ fn Timeline() -> impl IntoView {
             <timeline::Timeline callback=clbkc range=range></timeline::Timeline>
         </StyledView>
     }
+}
+
+trait Plugin {
+
+}
+
+struct PluginData {
+    
 }
