@@ -1,4 +1,31 @@
-use std::fmt;
+use std::{collections::HashMap, fmt};
+
+use leptos::*;
+use types::{
+    api::{AvailablePlugins, CompressedEvent},
+    timing::TimeRange,
+};
+
+use crate::api::api_request;
+
+#[component]
+fn event_manager(
+    available_range: MaybeSignal<TimeRange>,
+    current_range: MaybeSignal<TimeRange>,
+) -> impl IntoView {
+    let available_events = create_resource(available_range, |range| async move {
+        logging::log!("reloading all events");
+        api_request::<HashMap<AvailablePlugins, CompressedEvent>, _>("/get_events", &range).await
+    });
+
+    
+
+
+
+    view! {
+
+    }
+}
 
 pub type EventResult<T> = Result<T, EventError>;
 

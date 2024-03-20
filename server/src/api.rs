@@ -76,13 +76,14 @@ pub mod markers {
 }
 
 pub mod events {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, path::PathBuf};
     use crate::{config::Config, db::{Database, DatabaseError, Event}};
     use chrono::{DateTime, SubsecRound, Timelike, Utc};
     use futures::StreamExt;
     use mongodb::{bson::{doc, Document}, options::FindOptions};
-    use rocket::{post, request::FromRequest, serde::json::Json, State};
+    use rocket::{fs::NamedFile, get, post, request::FromRequest, response::content, serde::json::Json, State};
     use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
+    use tokio::{fs::{self, File}, io};
     use std::{fmt::{self, format}};
     use std::sync::Arc;
     use rocket::response::status;
@@ -101,13 +102,22 @@ pub mod events {
 
     #[post("/events", data="<request>")]
     pub async fn get_events(request: Json<TimeRange>, config: &State<Config>, plugin_manager: &State<PluginManager>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<HashMap<AvailablePlugins, Vec<CompressedEvent>>>>> {
-        if let Err(e) = auth(&cookies, &config) {
+        if let Err(e) = auth(cookies, config) {
             return status::Custom(Status::Unauthorized, Json(Err(e)));
         }
         match plugin_manager.get_compress_events(&request).await {
             Ok(v) => status::Custom(Status::Ok, Json(Ok(v))),
             Err(e) => status::Custom(Status::InternalServerError, Json(Err(e)))
         }
+    }
+
+    
+    #[get("/icon/<plugin>")]
+    pub async fn get_icon (plugin: &str) -> Option<NamedFile> {
+        let mut path = PathBuf::from("../plugins/");
+        path.push(plugin);
+        path.push("icon.svg");
+        NamedFile::open(path).await.ok()
     }
 }
 
@@ -116,7 +126,7 @@ fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
             Some(pwd) => if pwd.value() != config.password {
                 Err(APIError::AuthenticationError)
             }else {Ok(())},
-            None => return Err(APIError::AuthenticationError)
+            None => Err(APIError::AuthenticationError)
     }
 }
 

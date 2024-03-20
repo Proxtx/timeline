@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use leptos::{view, IntoView, View};
+use serde::{de::DeserializeOwned, Deserialize};
 use types::api::AvailablePlugins;
+use url::Url;
 
 use crate::{event_manager::EventResult, Plugins};
 
@@ -35,5 +37,26 @@ impl PluginManager {
 
 pub struct PluginEventData {
     data: String,
+}
 
+impl PluginEventData {
+    pub fn get_data<T> (&self) -> EventResult<T>
+    where 
+        T:DeserializeOwned
+    {
+        Ok(serde_json::from_str(&self.data)?)
+    }
+
+    pub fn get_raw(&self) -> &str {
+        &self.data
+    }
+
+    pub fn get_icon(&self) -> IconLocation {
+        IconLocation::Default
+    }
+}
+
+pub enum IconLocation {
+    Default,
+    Custom(Url)
 }
