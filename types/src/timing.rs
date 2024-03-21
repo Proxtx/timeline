@@ -17,10 +17,39 @@ pub struct TimeRange {
     pub end: chrono::DateTime<Utc>,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+impl TimeRange {
+    pub fn overlap_range(&self, other: &TimeRange) -> bool {
+        (other.start >= self.start && other.start <= self.end)
+            || (other.end >= self.start && other.end <= self.end)
+    }
+
+    pub fn includes(&self, other: &DateTime<Utc>) -> bool {
+        other >= &self.start && other <= &self.end
+    }
+
+    pub fn overlap_timing(&self, other: &Timing) -> bool {
+        match other {
+            Timing::Instant(o) => self.includes(o),
+            Timing::Range(o) => self.overlap_range(o),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Timing {
     Range(TimeRange),
     Instant(DateTime<Utc>),
+}
+
+impl Timing {
+    pub fn overlap(&self, other: &Timing) -> bool {
+        match (self, other) {
+            (Self::Range(s), Self::Range(o)) => s.overlap_range(o),
+            (Self::Instant(s), Self::Range(o)) => o.includes(s),
+            (Self::Range(s), Self::Instant(o)) => s.includes(o),
+            (Self::Instant(s), Self::Instant(o)) => s == o,
+        }
+    }
 }
 
 impl Serialize for Timing {

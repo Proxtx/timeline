@@ -10,7 +10,7 @@ use stylers::build;
 fn main() {
     println!("cargo:rerun-if-changed=../plugins/");
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=src/client.rs");
+    println!("cargo:rerun-if-changed=src/");
     fs::copy(
         PathBuf::from("./src/client.rs"),
         PathBuf::from("../plugins/timeline_plugin_media_scan/client.rs"),

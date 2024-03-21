@@ -1,4 +1,4 @@
-use chrono::DateTime;
+use chrono::{DateTime, Utc};
 use leptos::{html::div, *};
 use leptos_router::*;
 
@@ -37,11 +37,19 @@ fn MainView() -> impl IntoView {
 
 #[component]
 fn Timeline() -> impl IntoView {
-    let clbkc = |range: TimeRange| {
-        spawn_local(async move {
-            let t: Result<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _> = api_request("/events", &range).await;
-            logging::log!("{:?}", t);
-        });
+    let (read_current_time, write_current_time) = create_signal::<TimeRange>( TimeRange {
+        start: DateTime::parse_from_str(
+            "2024 Jan 13 12:09:14.274 +0000",
+            "%Y %b %d %H:%M:%S%.3f %z",
+        )
+        .unwrap()
+        .into(),
+        end: DateTime::parse_from_str("2024 Jan 13 13:09:14.274 +0000", "%Y %b %d %H:%M:%S%.3f %z")
+            .unwrap()
+            .into(),
+    });
+    let clbkc = move |range: TimeRange| {
+        write_current_time(range)
     };
 
     let ac = create_action(|task: &String| async {
@@ -64,12 +72,16 @@ fn Timeline() -> impl IntoView {
 
     let v = ac.value();
 
-    let t = || {view! { <h1></h1> }};
+    let r2 = range.clone();
 
     view! {
         <StyledView>
             <TitleBar subtitle=Some("Whaaazzz up".to_string())/>
             <timeline::Timeline callback=clbkc range=range></timeline::Timeline>
+            <event_manager::EventManger
+                available_range=r2
+                current_range=read_current_time
+            ></event_manager::EventManger>
             {move || match v.get() {
                 Some(v) => {
                     div()
