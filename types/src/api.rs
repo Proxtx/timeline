@@ -82,6 +82,7 @@ pub struct CompressedEvent {
     #[cfg(feature = "client")]
     pub data: String,
     pub time: crate::timing::Timing,
+    pub title: String,
 }
 
 pub fn serialize_data<S>(

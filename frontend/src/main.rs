@@ -52,11 +52,11 @@ fn Timeline() -> impl IntoView {
         write_current_time(range)
     };
 
-    let ac = create_action(|task: &String| async {
+    let plugin_manager = create_action(|task: &()| async {
         plugin_manager::PluginManager::new().await
     });
 
-    ac.dispatch("Hello".to_string());
+    plugin_manager.dispatch(());
 
     let range = TimeRange {
         start: DateTime::parse_from_str(
@@ -70,31 +70,24 @@ fn Timeline() -> impl IntoView {
             .into(),
     };
 
-    let v = ac.value();
-
     let r2 = range.clone();
 
     view! {
         <StyledView>
             <TitleBar subtitle=Some("Whaaazzz up".to_string())/>
             <timeline::Timeline callback=clbkc range=range></timeline::Timeline>
-            <event_manager::EventManger
-                available_range=r2
-                current_range=read_current_time
-            ></event_manager::EventManger>
-            {move || match v.get() {
-                Some(v) => {
-                    div()
-                        .child(
-                            v
-                                .get_component(
-                                    AvailablePlugins::timeline_plugin_media_scan,
-                                    "data".to_string(),
-                                ),
-                        )
+            {move || match plugin_manager.value()() {
+                Some(plg) => {
+                    view! {
+                        <event_manager::EventManger
+                            available_range=r2.clone()
+                            current_range=read_current_time
+                            plugin_manager=plg
+                        ></event_manager::EventManger>
+                    }
                         .into_view()
                 }
-                None => view! {}.into_view(),
+                None => view! { Loading Plugins }.into_view(),
             }}
 
         </StyledView>

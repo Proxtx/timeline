@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt};
 
 use leptos::{view, IntoView, View};
 use serde::{de::DeserializeOwned, Deserialize};
@@ -12,6 +12,26 @@ pub trait Plugin {
         where 
             Self:Sized;
     fn get_component(&self, data: PluginEventData) -> EventResult<Box<dyn Fn() -> View>>;
+
+    fn get_style(&self) -> Style;
+}
+
+pub enum Style {
+    Acc1,
+    Acc2
+}
+
+impl fmt::Display for Style {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Style::Acc1 => {
+                write!(f, "var(--accentColor1)")
+            }
+            Style::Acc2 => {
+                write!(f, "var(--accentColor2)")
+            }
+        }
+    }
 }
 
 pub struct PluginData {}
@@ -32,6 +52,10 @@ impl PluginManager {
 
     pub fn get_component(&self, plugin: AvailablePlugins, data: String) -> EventResult<impl Fn() -> View> {
         self.plugins.get(&plugin).unwrap().get_component(PluginEventData { data })
+    }
+
+    pub fn get_style(&self, plugin: &AvailablePlugins) -> Style {
+        self.plugins.get(plugin).unwrap().get_style()
     }
 }
 

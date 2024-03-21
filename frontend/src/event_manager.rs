@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, str::FromStr};
+use std::{collections::HashMap, fmt, rc::Rc, str::FromStr};
 
 use leptos::*;
 use stylers::style;
@@ -8,12 +8,13 @@ use types::{
 };
 use url::Url;
 
-use crate::api::{self, api_request};
+use crate::{api::{self, api_request}, plugin_manager::{self, PluginManager}};
 
 #[component]
 pub fn EventManger(
     #[prop(into)] available_range: MaybeSignal<TimeRange>,
     #[prop(into)] current_range: MaybeSignal<TimeRange>,
+    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>
 ) -> impl IntoView {
     let available_events = create_resource(available_range, |range| async move {
         logging::log!("reloading all events");
@@ -51,6 +52,8 @@ pub fn EventManger(
         }
     };
 
+    let current_app = create_rw_signal(None);
+
 
     view! {
         {move || {
@@ -61,7 +64,8 @@ pub fn EventManger(
                             view! {
                                 <AppSelect
                                     selectable_apps=v
-                                    callback=|v| { logging::log!("{:?}", v) }
+                                    current_app=current_app
+                                    plugin_manager=plugin_manager.clone()
                                 />
                             }
                                 .into_view()
@@ -72,11 +76,16 @@ pub fn EventManger(
                 Err(e) => view! { {move || format!("{}", e)} }.into_view(),
             }
         }}
+
+        {move || format!("{:?}", current_app.get())}
     }
 }
 
 #[component]
-fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>, #[prop(into)] callback: Callback<Option<AvailablePlugins>>) -> impl IntoView {
+fn AppSelect (
+#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>, 
+#[prop(into)] current_app: RwSignal<Option<AvailablePlugins>>, 
+#[prop(into)] plugin_manager: MaybeSignal<PluginManager>) -> impl IntoView {
     let style = style! {
         .selector {
             --padding: calc(var(--contentSpacing) * 1.5);
@@ -104,7 +113,8 @@ fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>,
             position: absolute;
             left: 50%;
             top: 50%;
-            height: 100%;
+            height: 0%;
+            transition: 0.2s;
             transform: translateX(-50%);
         }
 
@@ -113,10 +123,6 @@ fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>,
             height: 100%;
         }
     };
-    let (read_current_app, write_current_app) = create_signal::<Option<AvailablePlugins>>(None);
-    create_effect(move |_| {
-        callback(read_current_app())
-    });
     
     view! { class=style,
         <div class="selector">
@@ -131,23 +137,30 @@ fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>,
                         .join(&format!("{}", t))
                         .unwrap();
                     let type_2 = t.clone();
+                    let type_3 = t.clone();
+                    let plg = plugin_manager.clone();
                     view! { class=style,
                         <div class="iconWrap">
                             <img
                                 src=url.to_string()
                                 class="icon"
                                 on:click=move |_| {
-                                    write_current_app(Some(type_2.clone()));
+                                    current_app.set(Some(type_2.clone()));
                                 }
                             />
 
                             <div
                                 class="indicator"
-                                style:opacity=move || {
-                                    match read_current_app() {
-                                        Some(v) => if v == t { 1 } else { 0 }
-                                        None => 0,
+                                style:height=move || {
+                                    match current_app.get() {
+                                        Some(v) => if v == t { "100%" } else { "0" }
+                                        None => "0",
                                     }
+                                }
+
+                                style:background-color=move || {
+                                    let style = plg().get_style(&type_3);
+                                    format!("{}", style)
                                 }
                             >
                             </div>

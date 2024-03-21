@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use leptos::{view, IntoView};
 
-use crate::plugin_manager::PluginEventData;
+use crate::plugin_manager::{PluginEventData, Style};
 
 pub struct Plugin {}
 
@@ -22,5 +22,9 @@ impl crate::Plugin for Plugin {
             let filename = path.file_name().unwrap().to_str().unwrap().to_string();
             view! { <h1>{filename}</h1> }.into_view()
         }))
+    }
+
+    fn get_style(&self) -> crate::plugin_manager::Style {
+        Style::Acc1
     }
 }
