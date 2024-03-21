@@ -240,18 +240,46 @@ fn EventsDisplay(
 fn EventDisplay (
 #[prop(into)] event: MaybeSignal<CompressedEvent>,
 #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
-#[prop(into)] style: MaybeSignal<Style>
+#[prop(into)] plugin: MaybeSignal<AvailablePlugins>
 ) -> impl IntoView {
     let css = style! {
         
     };
 
+    let plugin_manager_s = plugin_manager.clone();
+    let plugin_s = plugin.clone();
+
+    let style = move || {
+        plugin_manager_s().get_style(&plugin_s())
+    };
+
+    let expanded = create_rw_signal(false);
+
     view! { class=css,
         <div class="wrapper">
             <div class="titleWrapper"></div>
-            <div class="contentWrapper"></div>
+            <EventContent
+                style=Signal::derive(style)
+                func=Signal::derive(move || {
+                    plugin_manager()
+                        .get_component(plugin(), &event().data)
+                        .map(|v| -> Box<dyn FnOnce() -> View> { Box::new(v) })
+                })
+
+                expanded=expanded
+            />
+
         </div>
     }
+}
+
+#[component]
+fn EventContent(
+    #[prop(into)] func: MaybeSignal<EventResult<Box<dyn FnOnce() -> View>>>,
+    #[prop(into)] style: MaybeSignal<Style>,
+    #[prop(into)] expanded: MaybeSignal<bool>
+) -> impl IntoView {
+    
 }
 
 pub type EventResult<T> = Result<T, EventError>;

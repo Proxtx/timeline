@@ -51,7 +51,7 @@ impl PluginManager {
         }
     }
 
-    pub fn get_component(&self, plugin: AvailablePlugins, data: String) -> EventResult<impl Fn() -> View> {
+    pub fn get_component(&self, plugin: AvailablePlugins, data: &str) -> EventResult<impl Fn() -> View> {
         self.plugins.get(&plugin).unwrap().get_component(PluginEventData { data })
     }
 
@@ -60,11 +60,11 @@ impl PluginManager {
     }
 }
 
-pub struct PluginEventData {
-    data: String,
+pub struct PluginEventData<'a> {
+    data: &'a str,
 }
 
-impl PluginEventData {
+impl<'a> PluginEventData<'a> {
     pub fn get_data<T> (&self) -> EventResult<T>
     where 
         T:DeserializeOwned
