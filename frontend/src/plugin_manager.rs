@@ -16,6 +16,7 @@ pub trait Plugin {
     fn get_style(&self) -> Style;
 }
 
+#[derive(Debug, Clone, PartialEq)]
 pub enum Style {
     Acc1,
     Acc2

@@ -8,7 +8,7 @@ use types::{
 };
 use url::Url;
 
-use crate::{api::{self, api_request}, plugin_manager::{self, PluginManager}};
+use crate::{api::{self, api_request}, plugin_manager::{self, PluginManager, Style}};
 
 #[component]
 pub fn EventManger(
@@ -43,6 +43,8 @@ pub fn EventManger(
         }
     });
 
+    let plugin_manager_e = plugin_manager.clone();
+
     let currently_available_plugins = move || match current_events()? {
         Some(v) => {
             APIResult::Ok(Some(v.keys().cloned().collect::<Vec<AvailablePlugins>>()))
@@ -52,7 +54,32 @@ pub fn EventManger(
         }
     };
 
-    let current_app = create_rw_signal(None);
+    let current_app: RwSignal<Option<AvailablePlugins>> = create_rw_signal(None);
+
+    let selected_events = create_memo(move |_| {
+        match (current_app(), current_events()) {
+            (Some(app), Ok(Some(events))) => {
+                Ok(Some(events[&app].clone()))
+            },
+            (None, Ok(Some(_))) => Ok(Some(Vec::new())),
+            (_, Ok(None)) => Ok(None),
+            (_, Err(e)) => Err(e)
+        }
+    });
+
+    let plugin_manager_c = plugin_manager.clone();
+
+    let current_style = move || {
+        match current_app() {
+            Some(v) => {
+                plugin_manager_c().get_style(&v)
+            },
+            None => {
+                Style::Acc2
+            }
+        }
+    };
+
 
 
     view! {
@@ -73,11 +100,29 @@ pub fn EventManger(
                         None => view! { Loading }.into_view(),
                     }
                 }
-                Err(e) => view! { {move || format!("{}", e)} }.into_view(),
+                Err(e) => {
+                    view! { {move || format!("Error loading app selector: {}", e)} }.into_view()
+                }
             }
         }}
 
-        {move || format!("{:?}", current_app.get())}
+        {move || match selected_events() {
+            Ok(v) => {
+                match v {
+                    Some(v) => {
+                        view! {
+                            <EventsDisplay
+                                style=Signal::derive(current_style.clone())
+                                selected_events=v
+                                plugin_manager=plugin_manager_e.clone()
+                            />
+                        }
+                    }
+                    None => view! { Loading }.into_view(),
+                }
+            }
+            Err(e) => view! { {move || format!("Error loading event display: {}", e)} }.into_view(),
+        }}
     }
 }
 
@@ -169,6 +214,42 @@ fn AppSelect (
                 }
             />
 
+        </div>
+    }
+}
+
+#[component]
+fn EventsDisplay(
+#[prop(into)] style: MaybeSignal<Style>,
+#[prop(into)] selected_events: MaybeSignal<Vec<CompressedEvent>>,
+#[prop(into)] plugin_manager: MaybeSignal<PluginManager>
+) -> impl IntoView{
+    let css = style! {
+        .wrapper {
+            flex: 1 0 auto;
+            transition: 0.2s;
+        }
+    };
+
+    view! { class=css,
+        <div class="wrapper" style:background-color=move || { format!("{}", style.get()) }></div>
+    }
+}
+
+#[component]
+fn EventDisplay (
+#[prop(into)] event: MaybeSignal<CompressedEvent>,
+#[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+#[prop(into)] style: MaybeSignal<Style>
+) -> impl IntoView {
+    let css = style! {
+        
+    };
+
+    view! { class=css,
+        <div class="wrapper">
+            <div class="titleWrapper"></div>
+            <div class="contentWrapper"></div>
         </div>
     }
 }

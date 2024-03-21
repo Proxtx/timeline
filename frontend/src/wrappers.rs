@@ -57,6 +57,7 @@ pub fn StyledView(children: Children) -> impl IntoView {
             display: flex;
             flex-direction: column;
             width: 100%;
+            height: 100%;
         }
     };
     view! { class=stylers_class, <div class="view">{children()}</div> }
