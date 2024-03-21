@@ -57,7 +57,15 @@ pub fn EventManger(
             match currently_available_plugins() {
                 Ok(v) => {
                     match v {
-                        Some(v) => view! { <AppSelect selectable_apps=v/> }.into_view(),
+                        Some(v) => {
+                            view! {
+                                <AppSelect
+                                    selectable_apps=v
+                                    callback=|v| { logging::log!("{:?}", v) }
+                                />
+                            }
+                                .into_view()
+                        }
                         None => view! { Loading }.into_view(),
                     }
                 }
@@ -68,7 +76,7 @@ pub fn EventManger(
 }
 
 #[component]
-fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>) -> impl IntoView {
+fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>, #[prop(into)] callback: Callback<Option<AvailablePlugins>>) -> impl IntoView {
     let style = style! {
         .selector {
             --padding: calc(var(--contentSpacing) * 1.5);
@@ -80,13 +88,36 @@ fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>)
             padding: var(--padding);
             background-color: var(--darkColor);
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         .icon {
             width: 50px;
             height: 50px;
+            z-index: 1;
+            position: relative;
+        }
+
+        .indicator {
+            background-color: red;
+            width: 5px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            height: 100%;
+            transform: translateX(-50%);
+        }
+
+        .iconWrap {
+            position: relative;
+            height: 100%;
         }
     };
+    let (read_current_app, write_current_app) = create_signal::<Option<AvailablePlugins>>(None);
+    create_effect(move |_| {
+        callback(read_current_app())
+    });
+    
     view! { class=style,
         <div class="selector">
             <For
@@ -99,7 +130,29 @@ fn AppSelect (#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>)
                         .unwrap()
                         .join(&format!("{}", t))
                         .unwrap();
-                    view! { class=style, <img src=url.to_string() class="icon"/> }
+                    let type_2 = t.clone();
+                    view! { class=style,
+                        <div class="iconWrap">
+                            <img
+                                src=url.to_string()
+                                class="icon"
+                                on:click=move |_| {
+                                    write_current_app(Some(type_2.clone()));
+                                }
+                            />
+
+                            <div
+                                class="indicator"
+                                style:opacity=move || {
+                                    match read_current_app() {
+                                        Some(v) => if v == t { 1 } else { 0 }
+                                        None => 0,
+                                    }
+                                }
+                            >
+                            </div>
+                        </div>
+                    }
                 }
             />
 
