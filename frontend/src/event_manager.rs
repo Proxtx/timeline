@@ -85,11 +85,16 @@ pub fn EventManger(
                             }
                                 .into_view()
                         }
-                        None => view! { Loading }.into_view(),
+                        None => view! { <div class="infoWrapper">Loading</div> }.into_view(),
                     }
                 }
                 Err(e) => {
-                    view! { {move || format!("Error loading app selector: {}", e)} }.into_view()
+                    view! {
+                        <div class="errorWrapper">
+                            {move || format!("Error loading app selector: {}", e)}
+                        </div>
+                    }
+                        .into_view()
                 }
             }
         }}
@@ -106,11 +111,20 @@ pub fn EventManger(
                             />
                         }
                     }
-                    (Some(_), None) => view! { No App Selected }.into_view(),
-                    (None, _) => view! { Loading }.into_view(),
+                    (Some(_), None) => {
+                        view! { <div class="infoWrapper">No App Selected</div> }.into_view()
+                    }
+                    (None, _) => view! { <div class="infoWrapper">Loading</div> }.into_view(),
                 }
             }
-            Err(e) => view! { {move || format!("Error loading event display: {}", e)} }.into_view(),
+            Err(e) => {
+                view! {
+                    <div class="errorWrapper">
+                        {move || format!("Error loading event display: {}", e)}
+                    </div>
+                }
+                    .into_view()
+            }
         }}
     }
 }

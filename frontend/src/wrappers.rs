@@ -1,9 +1,11 @@
 use leptos::*;
 use stylers::style;
+use web_sys::MouseEvent;
 
 #[component]
 pub fn TitleBar(
     #[prop(into, default=None.into())] subtitle: MaybeSignal<Option<String>>,
+    #[prop(into, default=Callback::new(|_| {}))] subtitle_click_callback: Callback<MouseEvent, ()>,
 ) -> impl IntoView {
     let style = style! {
         .wrapper {
@@ -42,7 +44,14 @@ pub fn TitleBar(
                 <h1 class="title">Timeline</h1>
             </div>
             {move || match subtitle() {
-                Some(v) => view! { class=style, <a class="subtitle">{v}</a> }.into_view(),
+                Some(v) => {
+                    view! { class=style,
+                        <a class="subtitle" on:click=subtitle_click_callback>
+                            {v}
+                        </a>
+                    }
+                        .into_view()
+                }
                 None => view! {}.into_view(),
             }}
 

@@ -4,8 +4,10 @@
 use chrono::Duration;
 use db::Database;
 use rocket::fs::FileServer;
+use rocket::get;
 use rocket::response::content;
 use rocket::response::status;
+use rocket::response::status::Accepted;
 use rocket::routes;
 use rocket::Route;
 use types::api::CompressedEvent;

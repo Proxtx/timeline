@@ -42,8 +42,3 @@ pub fn relative_url(path: &str) -> Result<Url, ParseError> {
 pub fn encode_url_component(data: &str) -> String {
     leptos::window().get("encodeURIComponent").unwrap().dyn_into::<Function>().unwrap().call1(&JsValue::null(), &JsValue::from_str(data)).unwrap().as_string().unwrap()
 }
-
-pub fn yield_error(error: &dyn Error) {
-    let navigate = leptos_router::use_navigate();
-    navigate(&format!("/error/{}", encode_url_component(&format!("{}", error))), leptos_router::NavigateOptions::default());
-}

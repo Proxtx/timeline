@@ -41,3 +41,13 @@ h6 {
 .title {
   color: var(--lightColor);
 }
+
+.infoWrapper {
+  background-color: var(--accentColor1Light);
+  padding: var(--contentSpacing);
+}
+
+.errorWrapper {
+  background-color: var(--accentColor2Light);
+  padding: var(--contentSpacing);
+}

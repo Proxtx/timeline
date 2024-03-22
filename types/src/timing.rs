@@ -1,4 +1,5 @@
 use chrono::DateTime;
+use chrono::Local;
 use chrono::Timelike;
 use chrono::Utc;
 use serde::de::Visitor;
@@ -30,7 +31,7 @@ impl fmt::Display for TimeRange {
 }
 
 fn date_time_to_string(time: &DateTime<Utc>) -> String {
-    let local = time.naive_local();
+    let local = DateTime::<Local>::from(*time);
     format!(
         "{}:{}",
         prefix_number(local.hour()),
