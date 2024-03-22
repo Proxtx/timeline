@@ -284,13 +284,7 @@ fn EventDisplay (
         <div
             class="wrapper"
             style:border-top=move || {
-                format!(
-                    "1px solid {}",
-                    match plugin_manager_2().get_style(&plugin_2()) {
-                        Style::Acc1 => "var(--accentColor1Light)",
-                        Style::Acc2 => "var(--accentColor1Light)",
-                    },
-                )
+                format!("1px solid {}", plugin_manager_2().get_style(&plugin_2()).light())
             }
         >
 
@@ -363,18 +357,11 @@ fn ShowResultEventView (
             width: 100%;
             position: relative;
             padding: var(--contentSpacing);
+            box-sizing: border-box;
         }
     };
     view! { class=css,
-        <div
-            class="wrapper"
-            style:background-color=move || {
-                match style() {
-                    Style::Acc1 => "var(--accentColor1Light)",
-                    Style::Acc2 => "var(--accentColor1Light)",
-                }
-            }
-        >
+        <div class="wrapper" style:background-color=move || { style().light() }>
 
             {move || match view() {
                 Ok(v) => v,

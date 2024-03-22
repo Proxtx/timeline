@@ -1,5 +1,10 @@
 #![feature(iter_intersperse)]
-use std::{env, fmt::Write, fs, path::PathBuf};
+use std::{
+    env,
+    fmt::{format, Write},
+    fs,
+    path::PathBuf,
+};
 
 fn main() {
     println!("cargo:rerun-if-changed=../plugins/");
@@ -55,6 +60,12 @@ fn main() {
         })
         .intersperse(", ".to_string())
         .collect::<String>();
+
+    let routes_str = plugins
+        .iter()
+        .map(|v| format!("(AvailablePlugins::{}, {}::Plugin::get_routes())", v.0, v.0))
+        .intersperse(", ".to_string())
+        .collect::<String>();
     let importer = format!(
         "
     //dynamic module imports
@@ -66,18 +77,20 @@ fn main() {
     }};
     
     pub struct Plugins<'a> {{
-        pub plugins: HashMap<AvailablePlugins, Box<dyn Plugin + 'a>>
+        pub plugins: HashMap<AvailablePlugins, Box<dyn Plugin + 'a>>,
+        pub routes: HashMap<AvailablePlugins, Vec<Route>>
     }}
 
     impl<'a> Plugins<'a> {{
         pub async fn init(mut handler: impl FnMut(AvailablePlugins) -> PluginData) -> Plugins<'a> {{
             Plugins {{
-                plugins: HashMap::from([{}])
+                plugins: HashMap::from([{}]),
+                routes: HashMap::from([{}])
             }}
         }}
     }}
     ",
-        mod_str, init_str
+        mod_str, init_str, routes_str
     );
     fs::write(out_path, importer).expect("Unable to write plugins file");
 }

@@ -11,7 +11,7 @@ pub trait Plugin {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
         where 
             Self:Sized;
-    fn get_component(&self, data: PluginEventData) -> EventResult<Box<dyn Fn() -> View>>;
+    fn get_component(&self, data: PluginEventData) -> EventResult<Box<dyn FnOnce() -> View>>;
 
     fn get_style(&self) -> Style;
 }
@@ -20,6 +20,15 @@ pub trait Plugin {
 pub enum Style {
     Acc1,
     Acc2
+}
+
+impl Style {
+    pub fn light(&self) -> &'static str {
+        match self {
+            Style::Acc1 => "var(--accentColor1Light)",
+            Style::Acc2 => "var(--accentColor2Light)",
+        }
+    }
 }
 
 impl fmt::Display for Style {
@@ -39,7 +48,7 @@ pub struct PluginData {}
 
 #[derive(Clone)]
 pub struct PluginManager {
-    plugins: HashMap<AvailablePlugins, std::sync::Arc<Box<dyn Plugin>>>,
+    plugins: HashMap<AvailablePlugins, std::rc::Rc<Box<dyn Plugin>>>,
 }
 
 impl PluginManager {
@@ -47,12 +56,12 @@ impl PluginManager {
         let plugins = Plugins::init(|_plugin| PluginData {}).await;
 
         PluginManager {
-            plugins: plugins.plugins.into_iter().map(|(k,v)| (k, std::sync::Arc::new(v))).collect(),
+            plugins: plugins.plugins.into_iter().map(|(k,v)| (k, std::rc::Rc::new(v))).collect(),
         }
     }
 
-    pub fn get_component(&self, plugin: &AvailablePlugins, data: &str) -> EventResult<impl Fn() -> View> {
-        self.plugins.get(&plugin).unwrap().get_component(PluginEventData { data })
+    pub fn get_component(&self, plugin: &AvailablePlugins, data: &str) -> EventResult<impl FnOnce() -> View> {
+        self.plugins.get(plugin).unwrap().get_component(PluginEventData { data })
     }
 
     pub fn get_style(&self, plugin: &AvailablePlugins) -> Style {
@@ -69,11 +78,11 @@ impl<'a> PluginEventData<'a> {
     where 
         T:DeserializeOwned
     {
-        Ok(serde_json::from_str(&self.data)?)
+        Ok(serde_json::from_str(self.data)?)
     }
 
     pub fn get_raw(&self) -> &str {
-        &self.data
+        self.data
     }
 
     pub fn get_icon(&self) -> IconLocation {

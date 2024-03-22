@@ -7,6 +7,7 @@ use rocket::fs::FileServer;
 use rocket::response::content;
 use rocket::response::status;
 use rocket::routes;
+use rocket::Route;
 use types::api::CompressedEvent;
 use types::timing::TimeRange;
 use std::io;
@@ -25,6 +26,7 @@ mod cache;
 mod config;
 mod db;
 mod plugin_manager;
+mod plugin;
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
 pub trait Plugin: Send + Sync {
@@ -48,6 +50,13 @@ pub trait Plugin: Send + Sync {
     }
 
     fn get_compressed_events (&self, query_range: &TimeRange) -> Pin<Box<dyn futures::Future<Output = types::api::APIResult<Vec<CompressedEvent>>> + Send>>;
+
+    fn get_routes() -> Vec<Route>
+    where 
+        Self:Sized
+    {
+        Vec::new()
+    }
 }
 
 #[rocket::launch]
@@ -73,13 +82,19 @@ async fn rocket() -> _ {
     let plugin_manager = plugin_manager::PluginManager::new(plgs.plugins);
 
     let figment = rocket::Config::figment().merge(("port", config.port));
-    rocket::custom(figment)
+    let mut rocket_state = rocket::custom(figment)
     .register("/", catchers![not_found])
     .manage(plugin_manager)
     .manage(config)
     .manage(db)
     .mount("/", FileServer::from("../frontend/dist/"))
-    .mount("/api", routes![api::markers::get_markers_request, api::events::get_events, api::events::get_icon])
+    .mount("/api", routes![api::markers::get_markers_request, api::events::get_events, api::events::get_icon]);
+
+    for (plugin, routes) in plgs.routes {
+        rocket_state = rocket_state.mount(format!("/api/plugin/{}", plugin), routes);
+    }
+
+    rocket_state
 }
 
 #[catch(404)]

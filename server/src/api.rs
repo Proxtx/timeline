@@ -121,7 +121,7 @@ pub mod events {
     }
 }
 
-fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
+pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
     match cookies.get("pwd") {
             Some(pwd) => if pwd.value() != config.password {
                 Err(APIError::AuthenticationError)
