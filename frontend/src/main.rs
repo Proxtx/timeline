@@ -48,12 +48,17 @@ impl TimelineParams {
     pub fn get_range (&self) -> APIResult<TimeRange> {
         let selected_day = match &self.date {
             Some(v) => {
-                match DateTime::from_str(v) {
-                    Ok(date) => {
-                        only_date_local(date)
-                    }
-                    Err(e) => {
-                        return Err(APIError::Custom(format!("{}", e)))
+                if v.is_empty() {
+                    only_date_local(Utc::now())
+                }
+                else {
+                    match DateTime::from_str(v) {
+                        Ok(date) => {
+                            only_date_local(date)
+                        }
+                        Err(e) => {
+                            return Err(APIError::Custom(format!("{}", e)))
+                        }
                     }
                 }
             }
