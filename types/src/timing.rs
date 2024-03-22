@@ -5,6 +5,7 @@ use chrono::Utc;
 use serde::de::Visitor;
 use serde::Deserialize;
 use serde::Serialize;
+use std::cmp::Ordering;
 use std::fmt;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -78,6 +79,19 @@ impl Timing {
             (Self::Instant(s), Self::Range(o)) => o.includes(s),
             (Self::Range(s), Self::Instant(o)) => s.includes(o),
             (Self::Instant(s), Self::Instant(o)) => s == o,
+        }
+    }
+
+    pub fn cmp(&self, other: &Timing) -> Ordering {
+        match self {
+            Timing::Instant(t) => t.cmp(match other {
+                Self::Instant(t) => t,
+                Self::Range(r) => &r.start,
+            }),
+            Timing::Range(r) => r.start.cmp(match other {
+                Self::Instant(t) => t,
+                Self::Range(o) => &o.start,
+            }),
         }
     }
 }

@@ -45,9 +45,10 @@ impl PluginManager {
         let mut app_events = HashMap::new();
 
         while let Some((name, compressed_events)) = futures.next().await {
-            app_events.insert(name, compressed_events?);
+            let mut evt = compressed_events?;
+            evt.sort_by(|s, o| s.time.cmp(&o.time));
+            app_events.insert(name, evt);
         }
-
 
         Ok(app_events)
     }
