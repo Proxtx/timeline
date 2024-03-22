@@ -51,7 +51,7 @@ impl PluginManager {
         }
     }
 
-    pub fn get_component(&self, plugin: AvailablePlugins, data: &str) -> EventResult<impl Fn() -> View> {
+    pub fn get_component(&self, plugin: &AvailablePlugins, data: &str) -> EventResult<impl Fn() -> View> {
         self.plugins.get(&plugin).unwrap().get_component(PluginEventData { data })
     }
 

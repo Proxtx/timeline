@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt, rc::Rc, str::FromStr};
+use std::{collections::HashMap, fmt, hash::{DefaultHasher, Hash, Hasher}, rc::Rc, str::FromStr};
 
 use leptos::*;
 use stylers::style;
@@ -59,28 +59,16 @@ pub fn EventManger(
     let selected_events = create_memo(move |_| {
         match (current_app(), current_events()) {
             (Some(app), Ok(Some(events))) => {
-                Ok(Some(events[&app].clone()))
+                Ok(match events.get(&app) {
+                    Some(v) => Some(v.clone()),
+                    None => Some(Vec::new())
+                })
             },
             (None, Ok(Some(_))) => Ok(Some(Vec::new())),
             (_, Ok(None)) => Ok(None),
             (_, Err(e)) => Err(e)
         }
     });
-
-    let plugin_manager_c = plugin_manager.clone();
-
-    let current_style = move || {
-        match current_app() {
-            Some(v) => {
-                plugin_manager_c().get_style(&v)
-            },
-            None => {
-                Style::Acc2
-            }
-        }
-    };
-
-
 
     view! {
         {move || {
@@ -108,17 +96,18 @@ pub fn EventManger(
 
         {move || match selected_events() {
             Ok(v) => {
-                match v {
-                    Some(v) => {
+                match (v, current_app()) {
+                    (Some(v), Some(plugin)) => {
                         view! {
                             <EventsDisplay
-                                style=Signal::derive(current_style.clone())
+                                plugin=plugin
                                 selected_events=v
                                 plugin_manager=plugin_manager_e.clone()
                             />
                         }
                     }
-                    None => view! { Loading }.into_view(),
+                    (Some(_), None) => view! { No App Selected }.into_view(),
+                    (None, _) => view! { Loading }.into_view(),
                 }
             }
             Err(e) => view! { {move || format!("Error loading event display: {}", e)} }.into_view(),
@@ -220,19 +209,47 @@ fn AppSelect (
 
 #[component]
 fn EventsDisplay(
-#[prop(into)] style: MaybeSignal<Style>,
+#[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
 #[prop(into)] selected_events: MaybeSignal<Vec<CompressedEvent>>,
 #[prop(into)] plugin_manager: MaybeSignal<PluginManager>
 ) -> impl IntoView{
     let css = style! {
         .wrapper {
-            flex: 1 0 auto;
+            flex: 1 0;
             transition: 0.2s;
+            overflow: auto;
         }
     };
 
+    let plugin_manager_d = plugin_manager.clone();
+    let plugin_d = plugin.clone();
+
     view! { class=css,
-        <div class="wrapper" style:background-color=move || { format!("{}", style.get()) }></div>
+        <div
+            class="wrapper"
+            style:background-color=move || { format!("{}", plugin_manager().get_style(&plugin())) }
+        >
+
+            <For
+                each=selected_events
+                key=|e| {
+                    let mut hasher = DefaultHasher::new();
+                    e.data.hash(&mut hasher);
+                    hasher.finish()
+                }
+
+                children=move |e| {
+                    view! {
+                        <EventDisplay
+                            event=e
+                            plugin_manager=plugin_manager_d.clone()
+                            plugin=plugin_d.clone()
+                        />
+                    }
+                }
+            />
+
+        </div>
     }
 }
 
@@ -243,50 +260,101 @@ fn EventDisplay (
 #[prop(into)] plugin: MaybeSignal<AvailablePlugins>
 ) -> impl IntoView {
     let css = style! {
-        
-    };
-
-    let plugin_manager_s = plugin_manager.clone();
-    let plugin_s = plugin.clone();
-
-    let style = move || {
-        plugin_manager_s().get_style(&plugin_s())
+        .wrapper:first-child {
+            border-top: none !important;
+        }
+        .titleWrapper {
+            color: var(--lightColor);
+            padding: calc(var(--contentSpacing) * 0.7);
+            display: flex;
+            flex-direction: column; 
+        }
     };
 
     let expanded = create_rw_signal(false);
 
-    view! { class=css,
-        <div class="wrapper">
-            <div class="titleWrapper"></div>
-            <EventContent
-                style=Signal::derive(style)
-                func=Signal::derive(move || {
-                    plugin_manager()
-                        .get_component(plugin(), &event().data)
-                        .map(|v| -> Box<dyn FnOnce() -> View> { Box::new(v) })
-                })
+    let event_2 = event.clone();
+    let event_3 = event.clone();
 
+    let plugin_manager_2 = plugin_manager.clone();
+
+    let plugin_2 = plugin.clone();
+
+    view! { class=css,
+        <div
+            class="wrapper"
+            style:border-top=move || {
+                format!(
+                    "1px solid {}",
+                    match plugin_manager_2().get_style(&plugin_2()) {
+                        Style::Acc1 => "var(--accentColor1Light)",
+                        Style::Acc2 => "var(--accentColor1Light)",
+                    },
+                )
+            }
+        >
+
+            <div class="titleWrapper" on:click=move |_| expanded.set(!expanded.get())>
+
+                <h3>{move || event_2().title}</h3>
+                <a>{move || format!("{}", event_3().time)}</a>
+            </div>
+            <EventContent
+                plugin_manager=plugin_manager
+                data=Signal::derive(move || { event().data })
+                plugin=plugin
                 expanded=expanded
             />
-
         </div>
     }
 }
 
 #[component]
 fn EventContent(
-    #[prop(into)] func: MaybeSignal<EventResult<Box<dyn FnOnce() -> View>>>,
-    #[prop(into)] style: MaybeSignal<Style>,
+    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+    #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
+    #[prop(into)] data: MaybeSignal<String>,
     #[prop(into)] expanded: MaybeSignal<bool>
 ) -> impl IntoView {
-    
+    let (read_view, write_view) = create_signal(None);
+    view! {
+        {move || match (expanded(), read_view()) {
+            (true, Some(v)) => view! { <ShowResultEventView view=v/> }.into_view(),
+            (true, None) => {
+                data.with(|d| {
+                    match plugin_manager().get_component(&plugin(), d) {
+                        Ok(v) => {
+                            write_view(Some(Ok(v())));
+                        }
+                        Err(e) => {
+                            write_view(Some(Err(e)));
+                        }
+                    }
+                    view! { <ShowResultEventView view=read_view().unwrap()/> }.into_view()
+                })
+            }
+            (false, _) => ().into_view(),
+        }}
+    }
+}
+
+#[component]
+fn ShowResultEventView (
+    #[prop(into)] view: MaybeSignal<EventResult<View>>
+) -> impl IntoView {
+    view! {
+        {move || match view() {
+            Ok(v) => v,
+            Err(e) => format!("{}", e).into_view(),
+        }}
+    }
 }
 
 pub type EventResult<T> = Result<T, EventError>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum EventError {
-    FaultyInitData(serde_json::Error),
+    FaultyInitData(String),
 }
 
 impl std::error::Error for EventError {}
@@ -307,6 +375,6 @@ impl fmt::Display for EventError {
 
 impl From<serde_json::Error> for EventError {
     fn from(value: serde_json::Error) -> Self {
-        Self::FaultyInitData(value)
+        Self::FaultyInitData(format!("{}", value))
     }
 }

@@ -1,4 +1,5 @@
 use chrono::DateTime;
+use chrono::Timelike;
 use chrono::Utc;
 use serde::de::Visitor;
 use serde::Deserialize;
@@ -15,6 +16,34 @@ pub struct Marker {
 pub struct TimeRange {
     pub start: chrono::DateTime<Utc>,
     pub end: chrono::DateTime<Utc>,
+}
+
+impl fmt::Display for TimeRange {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}-{}",
+            date_time_to_string(&self.start),
+            date_time_to_string(&self.end)
+        )
+    }
+}
+
+fn date_time_to_string(time: &DateTime<Utc>) -> String {
+    let local = time.naive_local();
+    format!(
+        "{}:{}",
+        prefix_number(local.hour()),
+        prefix_number(local.minute())
+    )
+}
+
+fn prefix_number(num: u32) -> String {
+    if num < 10 {
+        format!("0{}", num)
+    } else {
+        format!("{}", num)
+    }
 }
 
 impl TimeRange {
@@ -48,6 +77,19 @@ impl Timing {
             (Self::Instant(s), Self::Range(o)) => o.includes(s),
             (Self::Range(s), Self::Instant(o)) => s.includes(o),
             (Self::Instant(s), Self::Instant(o)) => s == o,
+        }
+    }
+}
+
+impl fmt::Display for Timing {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Timing::Instant(v) => {
+                write!(f, "{}", date_time_to_string(v))
+            }
+            Timing::Range(r) => {
+                write!(f, "{}", r)
+            }
         }
     }
 }
