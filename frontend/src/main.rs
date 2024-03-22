@@ -60,12 +60,12 @@ fn Timeline() -> impl IntoView {
 
     let range = TimeRange {
         start: DateTime::parse_from_str(
-            "2024 Jan 13 12:09:14.274 +0000",
+            "2024 Mar 13 12:09:14.274 +0000",
             "%Y %b %d %H:%M:%S%.3f %z",
         )
         .unwrap()
         .into(),
-        end: DateTime::parse_from_str("2024 Mar 13 12:09:14.274 +0000", "%Y %b %d %H:%M:%S%.3f %z")
+        end: DateTime::parse_from_str("2024 Mar 22 12:09:14.274 +0000", "%Y %b %d %H:%M:%S%.3f %z")
             .unwrap()
             .into(),
     };

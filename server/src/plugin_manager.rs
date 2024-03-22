@@ -25,10 +25,10 @@ impl PluginManager {
             let plg = plg.clone();
             let plg_mut = plg.clone();
             tokio::spawn(async move {
-                PluginManager::update_loop(plg).await;
+                PluginManager::update_loop_mut(plg_mut).await;
             });
             tokio::spawn(async move {
-                PluginManager::update_loop_mut(plg_mut).await;
+                PluginManager::update_loop(plg).await;
             });
         }
         PluginManager { plugins }
@@ -60,7 +60,6 @@ impl PluginManager {
             {
                 let mut mut_plg = plugin.write().await;
                 let fut = mut_plg.request_loop_mut();
-                pin!(fut);
                 lptm = fut.await;
             }
             if let Some(v) = lptm {
@@ -81,7 +80,6 @@ impl PluginManager {
             {
                 let mut_plg = plugin.read().await;
                 let fut = mut_plg.request_loop();
-                pin!(fut);
                 lptm = fut.await;
             }
             if let Some(v) = lptm {
