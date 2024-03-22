@@ -20,15 +20,29 @@ impl crate::Plugin for Plugin {
     }
 
     fn get_component(&self, data: PluginEventData) -> crate::event_manager::EventResult<Box<dyn FnOnce() -> leptos::View>> {
-        let path = data.get_data::<PathBuf>()?.as_os_str().to_str().unwrap().to_string();
-        let path_encoded = leptos::window().get("encodeURIComponent").unwrap().dyn_into::<Function>().unwrap().call1(&JsValue::null(), &JsValue::from_str(&path)).unwrap().as_string().unwrap();
+        let path = data.get_data::<PathBuf>()?;
+        let extension = path.extension().unwrap().to_str().unwrap().to_lowercase().to_string();
+        let path_string = path.as_os_str().to_str().unwrap().to_string();
+        let path_encoded = api::encode_url_component(&path_string);
         let url = api::relative_url("/api/plugin/timeline_plugin_media_scan/file/").unwrap().join(&path_encoded).unwrap().as_str().to_string();
-
         Ok(Box::new(move || {
             view! {
-                <video style:width="100%" style:color="var(--lightColor)" src=url controls>
-                    Loading video.
-                </video>
+                {match extension.as_str() {
+                    "mp4" | "mkv" | "webm" | "mov" => {
+                        view! {
+                            <video
+                                style:width="100%"
+                                style:color="var(--lightColor)"
+                                src=url
+                                controls
+                            >
+                                Loading video.
+                            </video>
+                        }
+                            .into_view()
+                    }
+                    _ => view! { <img style:width="100%" src=url/> }.into_view(),
+                }}
             }.into_view()
         }))
     }

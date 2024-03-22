@@ -19,6 +19,7 @@ pub enum APIError {
     RequestError(String),
     SerdeJsonError(String),
     PluginError(String),
+    Custom(String),
 }
 
 impl std::error::Error for APIError {}
@@ -48,6 +49,9 @@ impl fmt::Display for APIError {
                     "Error executing API Request. Encountered a plugin error: {}",
                     txt
                 )
+            }
+            Self::Custom(txt) => {
+                write!(f, "API Error: {}", txt)
             }
         }
     }
