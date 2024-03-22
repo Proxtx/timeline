@@ -21,7 +21,7 @@ impl crate::Plugin for Plugin {
         Ok(Box::new(move || {
             logging::log!("loading file");
             let filename = path.file_name().unwrap().to_str().unwrap().to_string();
-            view! { <h1>{filename}</h1> }.into_view()
+            view! { <a style:color="var(--lightColor)">{filename}</a> }.into_view()
         }))
     }
 

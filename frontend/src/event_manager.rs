@@ -316,10 +316,19 @@ fn EventContent(
     #[prop(into)] data: MaybeSignal<String>,
     #[prop(into)] expanded: MaybeSignal<bool>
 ) -> impl IntoView {
+    let plugin_manager_2 = plugin_manager.clone();
+    let plugin_2 = plugin.clone();
+    let style = move || {
+        plugin_manager_2().get_style(&plugin_2())
+    };
+
     let (read_view, write_view) = create_signal(None);
     view! {
         {move || match (expanded(), read_view()) {
-            (true, Some(v)) => view! { <ShowResultEventView view=v/> }.into_view(),
+            (true, Some(v)) => {
+                view! { <ShowResultEventView style=Signal::derive(style.clone()) view=v/> }
+                    .into_view()
+            }
             (true, None) => {
                 data.with(|d| {
                     match plugin_manager().get_component(&plugin(), d) {
@@ -330,7 +339,13 @@ fn EventContent(
                             write_view(Some(Err(e)));
                         }
                     }
-                    view! { <ShowResultEventView view=read_view().unwrap()/> }.into_view()
+                    view! {
+                        <ShowResultEventView
+                            style=Signal::derive(style.clone())
+                            view=read_view().unwrap()
+                        />
+                    }
+                        .into_view()
                 })
             }
             (false, _) => ().into_view(),
@@ -340,13 +355,33 @@ fn EventContent(
 
 #[component]
 fn ShowResultEventView (
-    #[prop(into)] view: MaybeSignal<EventResult<View>>
+    #[prop(into)] view: MaybeSignal<EventResult<View>>,
+    #[prop(into)] style: MaybeSignal<Style>
 ) -> impl IntoView {
-    view! {
-        {move || match view() {
-            Ok(v) => v,
-            Err(e) => format!("{}", e).into_view(),
-        }}
+    let css = style!{
+        .wrapper {
+            width: 100%;
+            position: relative;
+            padding: var(--contentSpacing);
+        }
+    };
+    view! { class=css,
+        <div
+            class="wrapper"
+            style:background-color=move || {
+                match style() {
+                    Style::Acc1 => "var(--accentColor1Light)",
+                    Style::Acc2 => "var(--accentColor1Light)",
+                }
+            }
+        >
+
+            {move || match view() {
+                Ok(v) => v,
+                Err(e) => format!("{}", e).into_view(),
+            }}
+
+        </div>
     }
 }
 
