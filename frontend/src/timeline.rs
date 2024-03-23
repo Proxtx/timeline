@@ -61,7 +61,6 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
     };
 
     let range_moved = range.clone();
-    let range_moved_even_more = range.clone();
     let (indicator_is_dragged, set_indicator_is_dragged) = create_signal(false);
     
     let handle_pointer_event_move =  move |e: TouchEvent| {
@@ -70,13 +69,31 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
         }
     };
 
+    let range_2 = range.clone();
 
     view! { class=style,
         <div class="timeline" class:loading=move || resource().is_none()>
-
-            {move || match resource.get() {
-                None => view! {}.into_view(),
-                Some(data) => view! { {get_circles(&range(), &data.unwrap())} }.into_view(),
+            {move || match resource() {
+                Some(data) => {
+                    match data {
+                        Ok(data) => {
+                            let range_3 = range.clone();
+                            view! {
+                                {move || { view! { {get_circles(&range_3(), &data)} }.into_view() }}
+                            }
+                                .into_view()
+                        }
+                        Err(e) => {
+                            view! {
+                                <div class="errorWrapper">
+                                    {move || { format!("Error loading timeline-bubbles: {}", e) }}
+                                </div>
+                            }
+                                .into_view()
+                        }
+                    }
+                }
+                None => ().into_view(),
             }}
 
             <img
@@ -84,16 +101,15 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
                 class="pointer"
                 on:touchstart=move |e| {
                     set_indicator_is_dragged(true);
-                    handle_pointer_event(e, &range_moved_even_more.get());
+                    handle_pointer_event(e, &range_2());
                 }
 
                 on:touchend=move |e| { set_indicator_is_dragged.set(false) }
 
                 on:touchcancel=move |e| { set_indicator_is_dragged.set(false) }
 
-                on:touchmove=move |e| { handle_pointer_event_move(e) }
+                on:touchmove=handle_pointer_event_move
             />
-
         </div>
     }
 }

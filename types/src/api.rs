@@ -33,7 +33,7 @@ impl fmt::Display for APIError {
             Self::AuthenticationError => {
                 write!(
                     f,
-                    "Error execution API Request: Authentication Error: Password is wrong"
+                    "Error executing API Request: Authentication Error: Password is wrong"
                 )
             }
             #[cfg(feature = "client")]

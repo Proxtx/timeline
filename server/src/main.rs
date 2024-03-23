@@ -90,7 +90,7 @@ async fn rocket() -> _ {
     .manage(config)
     .manage(db)
     .mount("/", FileServer::from("../frontend/dist/"))
-    .mount("/api", routes![api::markers::get_markers_request, api::events::get_events, api::events::get_icon]);
+    .mount("/api", routes![api::markers::get_markers_request, api::events::get_events, api::events::get_icon, api::auth_request]);
 
     for (plugin, routes) in plgs.routes {
         rocket_state = rocket_state.mount(format!("/api/plugin/{}", plugin), routes);

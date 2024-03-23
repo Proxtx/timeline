@@ -91,6 +91,9 @@ fn Timeline() -> impl IntoView {
             width: 100%;
             border: none;
             box-sizing: border-box;
+            letter-spacing: 1px;
+            font-family: Rubik;
+            text-align: center;
         }
         .dateSelectWrapper input:focus {
             outline: none;
@@ -122,13 +125,42 @@ fn Timeline() -> impl IntoView {
 
     let (date_select_expanded, write_date_select_expanded) = create_signal(false);
 
+    let date_input_parser = move |c| {
+        write_date_select_expanded(false);
+        let value = event_target_value(&c);
+        let date: Vec<_> = value
+            .split('-')
+            .map(|v| { v.parse::<u32>().unwrap() })
+            .collect();
+        let local_date: DateTime<Local> = NaiveDate::from_ymd_opt(
+                date[0] as i32,
+                date[1],
+                date[2],
+            )
+            .unwrap()
+            .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
+            .and_local_timezone(Local)
+            .unwrap();
+        let utc_date: DateTime<Utc> = DateTime::from(local_date);
+        let navigate = leptos_router::use_navigate();
+        navigate(
+            &format!("/timeline/{}", &utc_date.to_rfc3339()),
+            Default::default(),
+        );
+    };
+
+    let (last_authentication_attempt, write_last_authentication_attempt) = create_signal(Utc::now().timestamp_millis());
+
+    let authentication = create_resource(last_authentication_attempt, |_| async move {
+        api::api_request::<(), ()>("/auth", &()).await
+    });
+
     view! {
         <StyledView>
             {move || match range() {
                 Ok(range) => {
-                    let r2 = range.clone();
                     let r3 = range.clone();
-                    view! { class=css,
+                    view! {
                         <TitleBar
                             subtitle=Signal::derive(move || {
                                 Some(
@@ -144,58 +176,62 @@ fn Timeline() -> impl IntoView {
                             })
                         />
 
-                        <div
-                            class="dateSelectWrapper"
-                            style:display=move || {
-                                if date_select_expanded() { "block" } else { "none" }
-                            }
-
-                            style:color-scheme="dark"
-                        >
-                            <input
-                                on:change=move |c| {
-                                    write_date_select_expanded(false);
-                                    let value = event_target_value(&c);
-                                    let date: Vec<_> = value
-                                        .split('-')
-                                        .map(|v| { v.parse::<u32>().unwrap() })
-                                        .collect();
-                                    let local_date: DateTime<Local> = NaiveDate::from_ymd_opt(
-                                            date[0] as i32,
-                                            date[1],
-                                            date[2],
-                                        )
-                                        .unwrap()
-                                        .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-                                        .and_local_timezone(Local)
-                                        .unwrap();
-                                    let utc_date: DateTime<Utc> = DateTime::from(local_date);
-                                    let navigate = leptos_router::use_navigate();
-                                    navigate(
-                                        &format!("/timeline/{}", &utc_date.to_rfc3339()),
-                                        Default::default(),
-                                    );
+                        {move || {
+                            match authentication() {
+                                None => ().into_view(),
+                                Some(Err(e)) => {
+                                    match e {
+                                        APIError::AuthenticationError => {
+                                            view! {
+                                                <Login update_authentication=write_last_authentication_attempt/>
+                                            }
+                                                .into_view()
+                                        }
+                                        e => {
+                                            view! {
+                                                <div class="errorWrapper">
+                                                    {move || format!("Error requesting authentication: {}", e)}
+                                                </div>
+                                            }
+                                                .into_view()
+                                        }
+                                    }
                                 }
+                                Some(Ok(_)) => {
+                                    let r3 = range.clone();
+                                    let r2 = range.clone();
+                                    view! { class=css,
+                                        <div
+                                            class="dateSelectWrapper"
+                                            style:display=move || {
+                                                if date_select_expanded() { "block" } else { "none" }
+                                            }
 
-                                type="date"
-                            />
-                        </div>
-                        <timeline::Timeline
-                            callback=write_time_callback
-                            range=range
-                        ></timeline::Timeline>
-                        {move || match plugin_manager.value()() {
-                            Some(plg) => {
-                                view! {
-                                    <event_manager::EventManger
-                                        available_range=r2.clone()
-                                        current_range=read_current_time
-                                        plugin_manager=plg
-                                    ></event_manager::EventManger>
+                                            style:color-scheme="dark"
+                                        >
+                                            <input on:change=date_input_parser type="date"/>
+                                        </div>
+                                        <timeline::Timeline
+                                            callback=write_time_callback
+                                            range=r3
+                                        ></timeline::Timeline>
+                                        {move || match plugin_manager.value()() {
+                                            Some(plg) => {
+                                                view! {
+                                                    <event_manager::EventManger
+                                                        available_range=r2.clone()
+                                                        current_range=read_current_time
+                                                        plugin_manager=plg
+                                                    ></event_manager::EventManger>
+                                                }
+                                                    .into_view()
+                                            }
+                                            None => view! { Loading Plugins }.into_view(),
+                                        }}
+                                    }
+                                        .into_view()
                                 }
-                                    .into_view()
                             }
-                            None => view! { Loading Plugins }.into_view(),
                         }}
                     }
                         .into_view()
@@ -204,7 +240,9 @@ fn Timeline() -> impl IntoView {
                     view! {
                         <TitleBar subtitle=Some("Error loading Day".to_string())/>
 
-                        <div class="errorWrapper">{move || format!("{}", e)}</div>
+                        <div class="errorWrapper">
+                            {move || format!("Error loading date: {}", e)}
+                        </div>
                     }
                         .into_view()
                 }
@@ -212,4 +250,49 @@ fn Timeline() -> impl IntoView {
 
         </StyledView>
     }
+}
+
+#[component]
+fn Login(
+    update_authentication: WriteSignal<i64>
+) -> impl IntoView{
+    let css = style! {
+        .pwdInput {
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: var(--accentColor2);
+            padding: var(--contentSpacing);
+            color: var(--lightColor);
+        }
+        .pwdInput::placeholder{
+            color: var(--lightColor);
+        }
+        .pwdInput:focus{
+            outline: none;
+        }
+    };
+    view! { class=css,
+        <div class="errorWrapper">
+            <h3>Login</h3>
+            <br/>
+            <input
+                class="pwdInput"
+                type="password"
+                placeholder="Password"
+                on:change=move |e| {
+                    set_password_cookie(event_target_value(&e));
+                    update_authentication(Utc::now().timestamp_millis());
+                }
+            />
+
+        </div>
+    }
+}
+
+fn set_password_cookie(password: String) {
+    let html_doc: web_sys::HtmlDocument = document().dyn_into().unwrap();
+    let mut cookie = cookie::Cookie::new("pwd", password);
+    cookie.set_path("/");
+    html_doc.set_cookie(&cookie.to_string()).unwrap();
 }

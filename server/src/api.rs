@@ -1,4 +1,9 @@
+use rocket::get;
 use rocket::http::CookieJar;
+use rocket::http::Status;
+use rocket::post;
+use rocket::response::status;
+use rocket::serde::json::Json;
 use rocket::State;
 use types::api::APIResult;
 use types::api::APIError;
@@ -123,11 +128,16 @@ pub mod events {
 
 pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
     match cookies.get("pwd") {
-            Some(pwd) => if pwd.value() != config.password {
-                Err(APIError::AuthenticationError)
-            }else {Ok(())},
-            None => Err(APIError::AuthenticationError)
+        Some(pwd) => if pwd.value() != config.password {
+            Err(APIError::AuthenticationError)
+        }else {Ok(())},
+        None => Err(APIError::AuthenticationError)
     }
+}
+
+#[post("/auth")]
+pub fn auth_request(config: &State<Config>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<()>>> {
+    status::Custom(Status::Unauthorized, Json(auth(cookies, config)))
 }
 
 impl From<DatabaseError> for APIError {

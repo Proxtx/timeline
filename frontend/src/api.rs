@@ -15,24 +15,7 @@ V: serde::Serialize,
 {
     let client = Client::new();
     let url = relative_url(&format!("/api{}", endpoint)).unwrap();
-    let res = serde_json::from_str::<APIResult<T>>(&client.post(url).body(serde_json::to_string(request)?).send().await?.text().await?)?;
-    match res {
-        Ok(v) => {
-            APIResult::Ok(v)
-        }
-        Err(e) => {
-            logging::log!("{:?}", e);
-            match e {
-                APIError::AuthenticationError => {
-                    leptos::window().location().set_pathname("/login").unwrap();
-                    Err(e)
-                }
-                e => {
-                    Err(e)
-                } 
-            }
-        }
-    }
+    serde_json::from_str::<APIResult<T>>(&client.post(url).body(serde_json::to_string(request)?).send().await?.text().await?)?
 }
 
 pub fn relative_url(path: &str) -> Result<Url, ParseError> {
