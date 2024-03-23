@@ -168,7 +168,7 @@ fn Timeline() -> impl IntoView {
             {move || match range() {
                 Ok(range) => {
                     let r3 = range.clone();
-                    view! {
+                    view! { class=css,
                         <TitleBar
                             subtitle=Signal::derive(move || {
                                 Some(
@@ -183,6 +183,25 @@ fn Timeline() -> impl IntoView {
                                 write_date_select_expanded.set(!date_select_expanded())
                             })
                         />
+
+                        <div
+                            class="dateSelectWrapper"
+                            style:display=move || {
+                                if date_select_expanded() { "block" } else { "none" }
+                            }
+
+                            style:color-scheme="dark"
+                        >
+
+                            <input
+                                on:change=date_input_parser
+                                type="date"
+                                prop:value=move || {
+                                    let local = DateTime::<Local>::from(range.start);
+                                    format!("{}", { local.format("%Y-%m-%d") })
+                                }
+                            />
+                        </div>
 
                         {move || {
                             match authentication() {
@@ -209,16 +228,6 @@ fn Timeline() -> impl IntoView {
                                     let r3 = range.clone();
                                     let r2 = range.clone();
                                     view! { class=css,
-                                        <div
-                                            class="dateSelectWrapper"
-                                            style:display=move || {
-                                                if date_select_expanded() { "block" } else { "none" }
-                                            }
-
-                                            style:color-scheme="dark"
-                                        >
-                                            <input on:change=date_input_parser type="date"/>
-                                        </div>
                                         <timeline::Timeline
                                             callback=write_time_callback
                                             range=r3

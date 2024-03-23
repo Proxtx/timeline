@@ -137,7 +137,7 @@ pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
 
 #[post("/auth")]
 pub fn auth_request(config: &State<Config>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<()>>> {
-    status::Custom(Status::Unauthorized, Json(auth(cookies, config)))
+    status::Custom(Status::Ok, Json(auth(cookies, config)))
 }
 
 impl From<DatabaseError> for APIError {
