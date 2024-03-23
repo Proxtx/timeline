@@ -34,9 +34,17 @@ fn MainView() -> impl IntoView {
         <Router>
             <Routes>
                 <Route path="/timeline/:date" view=Timeline/>
+                <Route path="/timeline" view=Timeline/>
+                <Route path="/" view=Redirect/>
             </Routes>
         </Router>
     }
+}
+
+#[component] 
+fn Redirect() -> impl IntoView {
+    use_navigate()("/timeline/", NavigateOptions::default());
+    view! { <div class="intoWrapper">"Redirecting"</div> }
 }
 
 #[derive(Params, PartialEq, Clone)]
