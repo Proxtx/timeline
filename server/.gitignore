@@ -1,3 +1,4 @@
 target/*
 config.toml
 cache/*
+src/server.rs

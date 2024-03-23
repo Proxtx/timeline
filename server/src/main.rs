@@ -29,6 +29,8 @@ mod config;
 mod db;
 mod plugin_manager;
 
+mod server;
+
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
 pub trait Plugin: Send + Sync {

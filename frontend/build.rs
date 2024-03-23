@@ -13,7 +13,7 @@ fn main() {
     println!("cargo:rerun-if-changed=src/");
     fs::copy(
         PathBuf::from("./src/client.rs"),
-        PathBuf::from("../plugins/timeline_plugin_media_scan/client.rs"),
+        PathBuf::from("../plugins/timeline_plugin_location/client.rs"),
     )
     .unwrap();
     build(Some(String::from("./target/generated.css")));
