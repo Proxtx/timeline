@@ -87,12 +87,7 @@ fn only_date_local (date: DateTime<Utc>) -> DateTime<Utc> {
 #[component]
 fn Timeline() -> impl IntoView {
     let css = style! {
-        .dateSelectWrapper {
-            background-color: var(--darkColor);
-            padding: var(--contentSpacing);
-            box-sizing: border-box;
-        }
-        .dateSelectWrapper input {
+        .dateSelect {
             padding: var(--contentSpacing);
             background-color: var(--accentColor1);
             color: var(--lightColor);
@@ -103,8 +98,13 @@ fn Timeline() -> impl IntoView {
             font-family: Rubik;
             text-align: center;
         }
-        .dateSelectWrapper input:focus {
+        .dateSelect:focus {
             outline: none;
+        }
+
+        .dateSelectWrapper {
+            max-height: 0px;
+            transition: 0.1s;
         }
     };
 
@@ -186,20 +186,21 @@ fn Timeline() -> impl IntoView {
 
                         <div
                             class="dateSelectWrapper"
-                            style:display=move || {
-                                if date_select_expanded() { "block" } else { "none" }
+                            style:max-height=move || {
+                                if date_select_expanded() { "100px" } else { "0px" }
                             }
-
-                            style:color-scheme="dark"
                         >
 
                             <input
+                                class="dateSelect"
                                 on:change=date_input_parser
                                 type="date"
                                 prop:value=move || {
                                     let local = DateTime::<Local>::from(range.start);
                                     format!("{}", { local.format("%Y-%m-%d") })
                                 }
+
+                                style:color-scheme="dark"
                             />
                         </div>
 
