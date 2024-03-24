@@ -1,13 +1,10 @@
-use futures::{FutureExt, StreamExt};
-use types::api::APIResult;
-use types::timing::TimeRange;
-use std::collections::HashMap;
-use std::pin::Pin;
-use std::sync::Arc;
-use tokio::pin;
-use tokio::sync::RwLock;
-
-use crate::{AvailablePlugins, CompressedEvent, Plugin};
+use {
+    crate::{AvailablePlugins, Plugin},
+    futures::{FutureExt, StreamExt},
+    std::{collections::HashMap, pin::Pin, sync::Arc},
+    tokio::sync::RwLock,
+    types::{api::APIResult, timing::TimeRange},
+};
 
 type ThreadedPlugin = Arc<RwLock<Box<dyn Plugin>>>;
 type PluginsMap = HashMap<AvailablePlugins, ThreadedPlugin>;
@@ -34,11 +31,17 @@ impl PluginManager {
         PluginManager { plugins }
     }
 
-    pub async fn get_compress_events(&self, time_range: &TimeRange) -> APIResult<HashMap<AvailablePlugins, Vec<crate::CompressedEvent>>> {
+    pub async fn get_compress_events(
+        &self,
+        time_range: &TimeRange,
+    ) -> APIResult<HashMap<AvailablePlugins, Vec<crate::CompressedEvent>>> {
         let mut futures = futures::stream::FuturesUnordered::new();
         for (name, plugin) in self.plugins.iter() {
-            futures.push(async move{
-                (name.clone(), plugin.read().await.get_compressed_events(&time_range).await)
+            futures.push(async move {
+                (
+                    name.clone(),
+                    plugin.read().await.get_compressed_events(time_range).await,
+                )
             })
         }
 
@@ -57,13 +60,13 @@ impl PluginManager {
         plugin: ThreadedPlugin,
     ) -> Pin<Box<dyn futures::Future<Output = ()> + Send>> {
         async move {
-            let lptm;
+            let mutable_plugin;
             {
                 let mut mut_plg = plugin.write().await;
                 let fut = mut_plg.request_loop_mut();
-                lptm = fut.await;
+                mutable_plugin = fut.await;
             }
-            if let Some(v) = lptm {
+            if let Some(v) = mutable_plugin {
                 tokio::time::sleep(v.to_std().unwrap()).await;
                 tokio::spawn(async move {
                     PluginManager::update_loop_mut(plugin).await;
@@ -77,13 +80,13 @@ impl PluginManager {
         plugin: ThreadedPlugin,
     ) -> Pin<Box<dyn futures::Future<Output = ()> + Send>> {
         async move {
-            let lptm;
+            let immutable_plugin;
             {
                 let mut_plg = plugin.read().await;
                 let fut = mut_plg.request_loop();
-                lptm = fut.await;
+                immutable_plugin = fut.await;
             }
-            if let Some(v) = lptm {
+            if let Some(v) = immutable_plugin {
                 tokio::time::sleep(v.to_std().unwrap()).await;
                 tokio::spawn(async move {
                     PluginManager::update_loop(plugin).await;

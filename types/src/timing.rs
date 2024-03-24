@@ -1,12 +1,7 @@
-use chrono::DateTime;
-use chrono::Local;
-use chrono::Timelike;
-use chrono::Utc;
-use serde::de::Visitor;
-use serde::Deserialize;
-use serde::Serialize;
-use std::cmp::Ordering;
-use std::fmt;
+use {
+    chrono::DateTime, chrono::Local, chrono::Timelike, chrono::Utc, serde::de::Visitor,
+    serde::Deserialize, serde::Serialize, std::cmp::Ordering, std::fmt,
+};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Marker {
@@ -168,14 +163,6 @@ impl<'de> Visitor<'de> for TimingVisitor {
     {
         let mut seq_2: Vec<DateTime<Utc>> = vec![];
         while let Some(val) = seq.next_element()? {
-            /*seq_2.push(match DateTime::from_timestamp_nanos(val) {
-                Some(v) => v,
-                None => {
-                    return Err(serde::de::Error::custom(
-                        "Unable to parse milliseconds into DateTime: {}",
-                    ))
-                }
-            });*/
             seq_2.push(DateTime::from_timestamp_nanos(val))
         }
 

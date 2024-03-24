@@ -1,18 +1,18 @@
-use chrono::DateTime;
-use chrono::TimeDelta;
-use chrono::Utc;
-use leptos::*;
-use stylers::style;
-use types::timing::Marker;
-use types::timing::TimeRange;
-use web_sys::wasm_bindgen::JsCast;
-use web_sys::HtmlElement;
-use crate::api::api_request;
-use rand::Rng;
-use leptos::ev::TouchEvent;
+use {
+    crate::api::api_request,
+    chrono::{DateTime, TimeDelta, Utc},
+    leptos::{ev::TouchEvent, *},
+    rand::Rng,
+    stylers::style,
+    types::timing::{Marker, TimeRange},
+    web_sys::{wasm_bindgen::JsCast, HtmlElement},
+};
 
 #[component]
-pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callback: Callback<TimeRange>) -> impl IntoView {
+pub fn Timeline(
+    #[prop(into)] range: MaybeSignal<TimeRange>,
+    #[prop(into)] callback: Callback<TimeRange>,
+) -> impl IntoView {
     let resource = create_resource(range.clone(), |range| async move {
         api_request::<Vec<Marker>, _>("/markers", &range).await
     });
@@ -36,7 +36,7 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
             position: relative;
             height: 102px;
         }
-        
+
         .loading {
             animation: loading 2s;
             animation-iteration-count: infinite;
@@ -50,20 +50,42 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
     };
 
     let handle_pointer_event = move |e: TouchEvent, range: &TimeRange| {
-        let pos_percent = e.touches().item(0).unwrap().page_x() as f64 / leptos::window().inner_width().unwrap().as_f64().unwrap() * 100.;
-        e.target().unwrap().dyn_into::<HtmlElement>().unwrap().style().set_property("left", &format!("{}%", pos_percent)).unwrap();
+        e.prevent_default();
+        let pos_percent = e.touches().item(0).unwrap().page_x() as f64
+            / leptos::window().inner_width().unwrap().as_f64().unwrap()
+            * 100.;
+        e.target()
+            .unwrap()
+            .dyn_into::<HtmlElement>()
+            .unwrap()
+            .style()
+            .set_property("left", &format!("{}%", pos_percent))
+            .unwrap();
 
-        let start_time_milis = map_range((0., 100.), (range.start.timestamp_millis() as f64, range.end.timestamp_millis() as f64), pos_percent);
-        
-        let start_time: DateTime<Utc> = DateTime::from_timestamp_millis(start_time_milis as i64).unwrap();
-        let end_time = start_time.checked_add_signed(TimeDelta::try_hours(1).unwrap()).unwrap();
-        callback(TimeRange { start: start_time, end: end_time })
+        let start_time_millis = map_range(
+            (0., 100.),
+            (
+                range.start.timestamp_millis() as f64,
+                range.end.timestamp_millis() as f64,
+            ),
+            pos_percent,
+        );
+
+        let start_time: DateTime<Utc> =
+            DateTime::from_timestamp_millis(start_time_millis as i64).unwrap();
+        let end_time = start_time
+            .checked_add_signed(TimeDelta::try_hours(1).unwrap())
+            .unwrap();
+        callback(TimeRange {
+            start: start_time,
+            end: end_time,
+        })
     };
 
     let range_moved = range.clone();
     let (indicator_is_dragged, set_indicator_is_dragged) = create_signal(false);
-    
-    let handle_pointer_event_move =  move |e: TouchEvent| {
+
+    let handle_pointer_event_move = move |e: TouchEvent| {
         if indicator_is_dragged() {
             handle_pointer_event(e, &range_moved.get())
         }
@@ -78,10 +100,7 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
                     match data {
                         Ok(data) => {
                             let range_3 = range.clone();
-                            view! {
-                                {move || { view! { {get_circles(&range_3(), &data)} }.into_view() }}
-                            }
-                                .into_view()
+                                (move || get_circles(&range_3(), &data)).into_view()
                         }
                         Err(e) => {
                             view! {
@@ -104,9 +123,9 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
                     handle_pointer_event(e, &range_2());
                 }
 
-                on:touchend=move |e| { set_indicator_is_dragged.set(false) }
+                on:touchend=move |_e| { set_indicator_is_dragged.set(false) }
 
-                on:touchcancel=move |e| { set_indicator_is_dragged.set(false) }
+                on:touchcancel=move |_e| { set_indicator_is_dragged.set(false) }
 
                 on:touchmove=handle_pointer_event_move
             />
@@ -114,10 +133,7 @@ pub fn Timeline(#[prop(into)] range: MaybeSignal<TimeRange>, #[prop(into)] callb
     }
 }
 
-pub fn get_circles(
-    range: &TimeRange,
-    markers: &[Marker]
-) -> impl IntoView {
+pub fn get_circles(range: &TimeRange, markers: &[Marker]) -> impl IntoView {
     let mut max = u32::MIN;
     let mut min = u32::MAX;
 
@@ -129,7 +145,6 @@ pub fn get_circles(
             min = marker.amount
         }
     }
-
 
     let style = style! {
         @keyframes popIn {

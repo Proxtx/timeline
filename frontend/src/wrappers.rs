@@ -1,6 +1,4 @@
-use leptos::*;
-use stylers::style;
-use web_sys::MouseEvent;
+use {leptos::*, stylers::style, web_sys::MouseEvent};
 
 #[component]
 pub fn TitleBar(

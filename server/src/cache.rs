@@ -1,9 +1,11 @@
-use serde::{de::DeserializeOwned, Serialize};
+use {
+    crate::Plugin,
+    serde::{de::DeserializeOwned, Serialize},
+    std::fmt,
+    tokio::fs::read_to_string,
+};
 
-use crate::Plugin;
-use std::fmt;
-use tokio::fs::read_to_string;
-
+#[allow(unused)]
 pub struct Cache<CacheType>
 where
     CacheType: Serialize + DeserializeOwned + Default,
@@ -11,6 +13,7 @@ where
     cache: CacheType,
 }
 
+#[allow(unused)]
 impl<CacheType> Cache<CacheType>
 where
     CacheType: Serialize + DeserializeOwned + Default,
@@ -38,8 +41,8 @@ where
     }
 
     pub fn modify<PluginType>(&mut self, updater: impl FnOnce(&mut CacheType)) -> CacheResult<()>
-    where 
-        PluginType: Plugin
+    where
+        PluginType: Plugin,
     {
         updater(&mut self.cache);
         self.save::<PluginType>()

@@ -1,15 +1,10 @@
-use chrono::DateTime;
-use chrono::Utc;
-use serde::de::DeserializeOwned;
-use serde::de::Visitor;
-use serde::Deserialize;
-use serde::Serialize;
-use serde::Serializer;
-use std::fmt;
-
+use {
+    serde::{Deserialize, Serialize, Serializer},
+    std::fmt,
+};
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
-pub type APIResult<T: Serialize + DeserializeOwned> = Result<T, APIError>;
+pub type APIResult<T> = Result<T, APIError>;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum APIError {

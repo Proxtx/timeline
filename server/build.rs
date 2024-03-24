@@ -1,9 +1,4 @@
-use std::{
-    env,
-    fmt::{format, Write},
-    fs,
-    path::PathBuf,
-};
+use std::{env, fmt::Write, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=../plugins/");
@@ -62,7 +57,8 @@ fn main() {
     let routes_str = plugins
         .iter()
         .map(|v| format!("(AvailablePlugins::{}, {}::Plugin::get_routes())", v.0, v.0))
-        .collect::<Vec<String>>().join(", ");
+        .collect::<Vec<String>>()
+        .join(", ");
     let importer = format!(
         "
     //dynamic module imports

@@ -1,73 +1,76 @@
-use std::{collections::HashMap, fmt, hash::{DefaultHasher, Hash, Hasher}, rc::Rc, str::FromStr};
-
-use leptos::*;
-use stylers::style;
-use types::{
-    api::{APIResult, AvailablePlugins, CompressedEvent},
-    timing::TimeRange,
+use {
+    crate::{
+        api::{api_request, relative_url},
+        plugin_manager::{PluginManager, Style},
+    },
+    leptos::*,
+    std::{
+        collections::HashMap,
+        fmt,
+        hash::{DefaultHasher, Hash, Hasher},
+    },
+    stylers::style,
+    types::{
+        api::{APIResult, AvailablePlugins, CompressedEvent},
+        timing::TimeRange,
+    },
 };
-use url::Url;
-
-use crate::{api::{self, api_request}, plugin_manager::{self, PluginManager, Style}};
 
 #[component]
 pub fn EventManger(
     #[prop(into)] available_range: MaybeSignal<TimeRange>,
     #[prop(into)] current_range: MaybeSignal<TimeRange>,
-    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>
+    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
 ) -> impl IntoView {
     let available_events = create_resource(available_range, |range| async move {
         logging::log!("reloading all events");
         api_request::<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _>("/events", &range).await
     });
 
-    let current_events = create_memo(move |_: Option<&APIResult<_>>| {
-        match available_events.get() {
-            Some(available_events) => {
-                let available_events = available_events?;
-                Ok(Some(
-                    available_events.into_iter()
-                    .map(|(plugin, events)| {
-                        (plugin, events.into_iter()
-                        .filter(|current_event| current_range()
-                        .overlap_timing(&current_event.time))
-                        .collect::<Vec<CompressedEvent>>())
-                    })
-                    .filter(|(_plugin, data)| !data.is_empty())
-                    .collect::<HashMap<AvailablePlugins, Vec<CompressedEvent>>>()
-                ))
-            }
-            None => {
-                Ok(None)
-            }
-        }
-    });
+    let current_events =
+        create_memo(
+            move |_: Option<&APIResult<_>>| match available_events.get() {
+                Some(available_events) => {
+                    let available_events = available_events?;
+                    Ok(Some(
+                        available_events
+                            .into_iter()
+                            .map(|(plugin, events)| {
+                                (
+                                    plugin,
+                                    events
+                                        .into_iter()
+                                        .filter(|current_event| {
+                                            current_range().overlap_timing(&current_event.time)
+                                        })
+                                        .collect::<Vec<CompressedEvent>>(),
+                                )
+                            })
+                            .filter(|(_plugin, data)| !data.is_empty())
+                            .collect::<HashMap<AvailablePlugins, Vec<CompressedEvent>>>(),
+                    ))
+                }
+                None => Ok(None),
+            },
+        );
 
     let plugin_manager_e = plugin_manager.clone();
 
     let currently_available_plugins = move || match current_events()? {
-        Some(v) => {
-            APIResult::Ok(Some(v.keys().cloned().collect::<Vec<AvailablePlugins>>()))
-        }
-        None => {
-            Ok(None)
-        }
+        Some(v) => APIResult::Ok(Some(v.keys().cloned().collect::<Vec<AvailablePlugins>>())),
+        None => Ok(None),
     };
 
     let current_app: RwSignal<Option<AvailablePlugins>> = create_rw_signal(None);
 
-    let selected_events = create_memo(move |_| {
-        match (current_app(), current_events()) {
-            (Some(app), Ok(Some(events))) => {
-                Ok(match events.get(&app) {
-                    Some(v) => Some(v.clone()),
-                    None => Some(Vec::new())
-                })
-            },
-            (None, Ok(Some(_))) => Ok(Some(Vec::new())),
-            (_, Ok(None)) => Ok(None),
-            (_, Err(e)) => Err(e)
-        }
+    let selected_events = create_memo(move |_| match (current_app(), current_events()) {
+        (Some(app), Ok(Some(events))) => Ok(match events.get(&app) {
+            Some(v) => Some(v.clone()),
+            None => Some(Vec::new()),
+        }),
+        (None, Ok(Some(_))) => Ok(Some(Vec::new())),
+        (_, Ok(None)) => Ok(None),
+        (_, Err(e)) => Err(e),
     });
 
     view! {
@@ -130,10 +133,11 @@ pub fn EventManger(
 }
 
 #[component]
-fn AppSelect (
-#[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>, 
-#[prop(into)] current_app: RwSignal<Option<AvailablePlugins>>, 
-#[prop(into)] plugin_manager: MaybeSignal<PluginManager>) -> impl IntoView {
+fn AppSelect(
+    #[prop(into)] selectable_apps: MaybeSignal<Vec<AvailablePlugins>>,
+    #[prop(into)] current_app: RwSignal<Option<AvailablePlugins>>,
+    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+) -> impl IntoView {
     let style = style! {
         .selector {
             --padding: calc(var(--contentSpacing) * 1.5);
@@ -171,7 +175,7 @@ fn AppSelect (
             height: 100%;
         }
     };
-    
+
     view! { class=style,
         <div class="selector">
             <For
@@ -180,7 +184,7 @@ fn AppSelect (
                 key=|app| format!("{}", app)
 
                 children=move |t| {
-                    let url = api::relative_url("/api/icon/")
+                    let url = relative_url("/api/icon/")
                         .unwrap()
                         .join(&format!("{}", t))
                         .unwrap();
@@ -223,10 +227,10 @@ fn AppSelect (
 
 #[component]
 fn EventsDisplay(
-#[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
-#[prop(into)] selected_events: MaybeSignal<Vec<CompressedEvent>>,
-#[prop(into)] plugin_manager: MaybeSignal<PluginManager>
-) -> impl IntoView{
+    #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
+    #[prop(into)] selected_events: MaybeSignal<Vec<CompressedEvent>>,
+    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+) -> impl IntoView {
     let css = style! {
         .wrapper {
             flex: 1 0;
@@ -268,10 +272,10 @@ fn EventsDisplay(
 }
 
 #[component]
-fn EventDisplay (
-#[prop(into)] event: MaybeSignal<CompressedEvent>,
-#[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
-#[prop(into)] plugin: MaybeSignal<AvailablePlugins>
+fn EventDisplay(
+    #[prop(into)] event: MaybeSignal<CompressedEvent>,
+    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+    #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
 ) -> impl IntoView {
     let css = style! {
         .wrapper:first-child {
@@ -281,7 +285,7 @@ fn EventDisplay (
             color: var(--lightColor);
             padding: calc(var(--contentSpacing) * 0.7);
             display: flex;
-            flex-direction: column; 
+            flex-direction: column;
         }
     };
 
@@ -322,13 +326,11 @@ fn EventContent(
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
     #[prop(into)] data: MaybeSignal<String>,
-    #[prop(into)] expanded: MaybeSignal<bool>
+    #[prop(into)] expanded: MaybeSignal<bool>,
 ) -> impl IntoView {
     let plugin_manager_2 = plugin_manager.clone();
     let plugin_2 = plugin.clone();
-    let style = move || {
-        plugin_manager_2().get_style(&plugin_2())
-    };
+    let style = move || plugin_manager_2().get_style(&plugin_2());
 
     let (read_view, write_view) = create_signal(None);
     view! {
@@ -362,11 +364,11 @@ fn EventContent(
 }
 
 #[component]
-fn ShowResultEventView (
+fn ShowResultEventView(
     #[prop(into)] view: MaybeSignal<EventResult<View>>,
-    #[prop(into)] style: MaybeSignal<Style>
+    #[prop(into)] style: MaybeSignal<Style>,
 ) -> impl IntoView {
-    let css = style!{
+    let css = style! {
         .wrapper {
             width: 100%;
             position: relative;

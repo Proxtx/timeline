@@ -1,20 +1,11 @@
-use std::{
-    env,
-    fmt::Write,
-    fs,
-    path::{Path, PathBuf},
+use {
+    std::{env, fmt::Write, fs, path::PathBuf},
+    stylers::build,
 };
-use stylers::build;
-
 fn main() {
     println!("cargo:rerun-if-changed=../plugins/");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/");
-    fs::copy(
-        PathBuf::from("./src/client.rs"),
-        PathBuf::from("../plugins/timeline_plugin_location/client.rs"),
-    )
-    .unwrap();
     build(Some(String::from("./target/generated.css")));
     let mut out_path = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     out_path = out_path.join("out");
@@ -70,10 +61,6 @@ fn main() {
         "
     //dynamic module imports
     {}
-
-    use {{
-        std::{{fmt, collections::HashMap}}
-    }};
     
     pub struct Plugins<'a> {{
         pub plugins: HashMap<AvailablePlugins, Box<dyn Plugin + 'a>>

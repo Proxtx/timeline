@@ -1,16 +1,15 @@
-use std::{collections::HashMap, fmt};
-
-use leptos::{view, IntoView, View};
-use serde::{de::DeserializeOwned, Deserialize};
-use types::api::AvailablePlugins;
-use url::Url;
-
-use crate::{event_manager::EventResult, Plugins};
-
+use {
+    crate::{event_manager::EventResult, Plugins},
+    leptos::View,
+    serde::de::DeserializeOwned,
+    std::{collections::HashMap, fmt},
+    types::api::AvailablePlugins,
+    url::Url,
+};
 pub trait Plugin {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
-        where 
-            Self:Sized;
+    where
+        Self: Sized;
     fn get_component(&self, data: PluginEventData) -> EventResult<Box<dyn FnOnce() -> View>>;
 
     fn get_style(&self) -> Style;
@@ -19,7 +18,7 @@ pub trait Plugin {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Style {
     Acc1,
-    Acc2
+    Acc2,
 }
 
 impl Style {
@@ -56,12 +55,23 @@ impl PluginManager {
         let plugins = Plugins::init(|_plugin| PluginData {}).await;
 
         PluginManager {
-            plugins: plugins.plugins.into_iter().map(|(k,v)| (k, std::rc::Rc::new(v))).collect(),
+            plugins: plugins
+                .plugins
+                .into_iter()
+                .map(|(k, v)| (k, std::rc::Rc::new(v)))
+                .collect(),
         }
     }
 
-    pub fn get_component(&self, plugin: &AvailablePlugins, data: &str) -> EventResult<impl FnOnce() -> View> {
-        self.plugins.get(plugin).unwrap().get_component(PluginEventData { data })
+    pub fn get_component(
+        &self,
+        plugin: &AvailablePlugins,
+        data: &str,
+    ) -> EventResult<impl FnOnce() -> View> {
+        self.plugins
+            .get(plugin)
+            .unwrap()
+            .get_component(PluginEventData { data })
     }
 
     pub fn get_style(&self, plugin: &AvailablePlugins) -> Style {
@@ -74,9 +84,9 @@ pub struct PluginEventData<'a> {
 }
 
 impl<'a> PluginEventData<'a> {
-    pub fn get_data<T> (&self) -> EventResult<T>
-    where 
-        T:DeserializeOwned
+    pub fn get_data<T>(&self) -> EventResult<T>
+    where
+        T: DeserializeOwned,
     {
         Ok(serde_json::from_str(self.data)?)
     }
@@ -92,5 +102,5 @@ impl<'a> PluginEventData<'a> {
 
 pub enum IconLocation {
     Default,
-    Custom(Url)
+    Custom(Url),
 }

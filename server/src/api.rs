@@ -1,60 +1,69 @@
-use rocket::get;
-use rocket::http::CookieJar;
-use rocket::http::Status;
-use rocket::post;
-use rocket::response::status;
-use rocket::serde::json::Json;
-use rocket::State;
-use types::api::APIResult;
-use types::api::APIError;
-use crate::config::Config;
-use crate::db::DatabaseError;
-use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
+use {
+    crate::{config::Config, db::DatabaseError},
+    rocket::{
+        http::{CookieJar, Status},
+        post,
+        response::status,
+        serde::json::Json,
+        State,
+    },
+    types::api::{APIError, APIResult},
+};
 
 pub mod markers {
-    use crate::{config::Config, db::{Database, DatabaseError, Event}};
-    use chrono::{DateTime, SubsecRound, Timelike, Utc};
-    use futures::StreamExt;
-    use mongodb::{bson::{doc, Document}, options::FindOptions};
-    use rocket::{post, request::FromRequest, serde::json::Json, State};
-    use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
-    use std::{collections::HashMap, fmt::{self, format}};
-    use std::sync::Arc;
-    use rocket::response::status;
-    use rocket::http::Status;
-    use types::timing::{Marker, TimeRange, Timing};
-    use types::api::APIError;
-    use types::api::APIResult;
-    use rocket::http::CookieJar;
-
-    use super::auth;
+    use {
+        super::auth,
+        crate::{config::Config, db::Database},
+        chrono::{DateTime, SubsecRound, Timelike, Utc},
+        mongodb::{bson::doc, options::FindOptions},
+        rocket::{
+            http::{CookieJar, Status},
+            post,
+            response::status,
+            serde::json::Json,
+            State,
+        },
+        serde::Deserialize,
+        std::{collections::HashMap, sync::Arc},
+        types::{
+            api::APIResult,
+            timing::{Marker, TimeRange, Timing},
+        },
+    };
 
     pub async fn get_markers(range: &TimeRange, database: &Database) -> APIResult<Vec<Marker>> {
         #[derive(Deserialize)]
         struct OnlyTimingEvent {
-            timing: Timing
+            timing: Timing,
         }
 
         let mut events = database
-            .find_events_with_custom_query::<OnlyTimingEvent>(Database::generate_range_filter(range), FindOptions::builder().projection(doc! {"timing": 1}).build()).await?;
-        
+            .find_events_with_custom_query::<OnlyTimingEvent>(
+                Database::generate_range_filter(range),
+                FindOptions::builder()
+                    .projection(doc! {"timing": 1})
+                    .build(),
+            )
+            .await?;
+
         let mut hour_events: HashMap<DateTime<Utc>, u32> = HashMap::new();
 
         while events.advance().await? {
             let next_event = events.deserialize_current()?;
             let time = match next_event.timing {
-                Timing::Instant(t) => {
-                    t
-                }
-                Timing::Range(range) => {
-                    range.start
-                }
+                Timing::Instant(t) => t,
+                Timing::Range(range) => range.start,
             };
 
-            let new_time = time.round_subsecs(0).with_second(0).unwrap().with_minute(0).unwrap();
+            let new_time = time
+                .round_subsecs(0)
+                .with_second(0)
+                .unwrap()
+                .with_minute(0)
+                .unwrap();
             match hour_events.get_mut(&new_time) {
                 Some(v) => {
-                    *v+=1;
+                    *v += 1;
                 }
                 None => {
                     hour_events.insert(new_time, 1);
@@ -62,63 +71,75 @@ pub mod markers {
             }
         }
 
-        let mut res: Vec<_> = hour_events.into_iter().map(|(time, amount)| Marker {time, amount}).collect();
+        let mut res: Vec<_> = hour_events
+            .into_iter()
+            .map(|(time, amount)| Marker { time, amount })
+            .collect();
 
         res.sort_by(|a, b| b.amount.cmp(&a.amount));
-        res = res.into_iter().enumerate().filter(|(index, _elem)| index < &5).map(|(_index, elem)| elem).collect();
+        res = res
+            .into_iter()
+            .enumerate()
+            .filter(|(index, _elem)| index < &5)
+            .map(|(_index, elem)| elem)
+            .collect();
 
         Ok(res)
     }
-    #[post("/markers", data="<request>")]
-    pub async fn get_markers_request(request: Json<TimeRange>, config: &State<Config>, database: &State<Arc<Database>>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<Vec<Marker>>>> {
-        if let Err(e) = auth(&cookies, &config) {
-            return status::Custom(Status::Unauthorized, Json(Err(e)));
-        }
-        else {
+    #[post("/markers", data = "<request>")]
+    pub async fn get_markers_request(
+        request: Json<TimeRange>,
+        config: &State<Config>,
+        database: &State<Arc<Database>>,
+        cookies: &CookieJar<'_>,
+    ) -> status::Custom<Json<APIResult<Vec<Marker>>>> {
+        if let Err(e) = auth(cookies, config) {
+            status::Custom(Status::Unauthorized, Json(Err(e)))
+        } else {
             status::Custom(Status::Ok, Json(get_markers(&request, database).await))
         }
     }
 }
 
 pub mod events {
-    use std::{collections::HashMap, path::PathBuf};
-    use crate::{config::Config, db::{Database, DatabaseError, Event}};
-    use chrono::{DateTime, SubsecRound, Timelike, Utc};
-    use futures::StreamExt;
-    use mongodb::{bson::{doc, Document}, options::FindOptions};
-    use rocket::{fs::NamedFile, get, post, request::FromRequest, response::content, serde::json::Json, State};
-    use serde::{de::DeserializeOwned, Deserialize, Serialize, Serializer};
-    use tokio::{fs::{self, File}, io};
-    use std::{fmt::{self, format}};
-    use std::sync::Arc;
-    use rocket::response::status;
-    use rocket::http::Status;
-    use types::timing::{Marker, TimeRange, Timing};
-    use types::api::APIError;
-    use types::api::APIResult;
-    use rocket::http::CookieJar;
+    use {
+        super::auth,
+        crate::{config::Config, plugin_manager::PluginManager},
+        mongodb::bson::doc,
+        rocket::{
+            fs::NamedFile,
+            get,
+            http::{CookieJar, Status},
+            post,
+            response::status,
+            serde::json::Json,
+            State,
+        },
+        std::{collections::HashMap, path::PathBuf},
+        types::{
+            api::{APIResult, AvailablePlugins, CompressedEvent},
+            timing::TimeRange,
+        },
+    };
 
-    use rocket::{};
-    use types::api::{AvailablePlugins, CompressedEvent};
-
-    use crate::plugin_manager::{PluginManager};
-
-    use super::auth;
-
-    #[post("/events", data="<request>")]
-    pub async fn get_events(request: Json<TimeRange>, config: &State<Config>, plugin_manager: &State<PluginManager>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<HashMap<AvailablePlugins, Vec<CompressedEvent>>>>> {
+    #[post("/events", data = "<request>")]
+    pub async fn get_events(
+        request: Json<TimeRange>,
+        config: &State<Config>,
+        plugin_manager: &State<PluginManager>,
+        cookies: &CookieJar<'_>,
+    ) -> status::Custom<Json<APIResult<HashMap<AvailablePlugins, Vec<CompressedEvent>>>>> {
         if let Err(e) = auth(cookies, config) {
             return status::Custom(Status::Unauthorized, Json(Err(e)));
         }
         match plugin_manager.get_compress_events(&request).await {
             Ok(v) => status::Custom(Status::Ok, Json(Ok(v))),
-            Err(e) => status::Custom(Status::InternalServerError, Json(Err(e)))
+            Err(e) => status::Custom(Status::InternalServerError, Json(Err(e))),
         }
     }
 
-    
     #[get("/icon/<plugin>")]
-    pub async fn get_icon (plugin: &str) -> Option<NamedFile> {
+    pub async fn get_icon(plugin: &str) -> Option<NamedFile> {
         let mut path = PathBuf::from("../plugins/");
         path.push(plugin);
         path.push("icon.svg");
@@ -128,15 +149,22 @@ pub mod events {
 
 pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
     match cookies.get("pwd") {
-        Some(pwd) => if pwd.value() != config.password {
-            Err(APIError::AuthenticationError)
-        }else {Ok(())},
-        None => Err(APIError::AuthenticationError)
+        Some(pwd) => {
+            if pwd.value() != config.password {
+                Err(APIError::AuthenticationError)
+            } else {
+                Ok(())
+            }
+        }
+        None => Err(APIError::AuthenticationError),
     }
 }
 
 #[post("/auth")]
-pub fn auth_request(config: &State<Config>, cookies: &CookieJar<'_>) -> status::Custom<Json<APIResult<()>>> {
+pub fn auth_request(
+    config: &State<Config>,
+    cookies: &CookieJar<'_>,
+) -> status::Custom<Json<APIResult<()>>> {
     status::Custom(Status::Ok, Json(auth(cookies, config)))
 }
 
