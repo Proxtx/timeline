@@ -1,4 +1,3 @@
-#![feature(iter_intersperse)]
 use std::{
     env,
     fmt::{format, Write},
@@ -58,14 +57,12 @@ fn main() {
                 v.0, v.0, &v.0
             )
         })
-        .intersperse(", ".to_string())
-        .collect::<String>();
+        .collect::<Vec<String>>().join(", ");
 
     let routes_str = plugins
         .iter()
         .map(|v| format!("(AvailablePlugins::{}, {}::Plugin::get_routes())", v.0, v.0))
-        .intersperse(", ".to_string())
-        .collect::<String>();
+        .collect::<Vec<String>>().join(", ");
     let importer = format!(
         "
     //dynamic module imports
