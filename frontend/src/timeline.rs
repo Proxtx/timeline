@@ -46,21 +46,17 @@ pub fn Timeline(
             position: absolute;
             transform: translateX(-50%);
             z-index: 1;
+            pointer-events: none;
         }
     };
+    let pointer_ref: NodeRef<html::Img> = create_node_ref();
 
     let handle_pointer_event = move |e: TouchEvent, range: &TimeRange| {
         e.prevent_default();
         let pos_percent = e.touches().item(0).unwrap().page_x() as f64
             / leptos::window().inner_width().unwrap().as_f64().unwrap()
             * 100.;
-        e.target()
-            .unwrap()
-            .dyn_into::<HtmlElement>()
-            .unwrap()
-            .style()
-            .set_property("left", &format!("{}%", pos_percent))
-            .unwrap();
+        let _ = pointer_ref().unwrap().style("left", &format!("{}%", pos_percent));
 
         let start_time_millis = map_range(
             (0., 100.),
@@ -93,8 +89,16 @@ pub fn Timeline(
 
     let range_2 = range.clone();
 
+
     view! { class=style,
-        <div class="timeline" class:loading=move || resource().is_none()>
+        <div class="timeline" class:loading=move || resource().is_none() 
+            on:touchstart=move |e| {
+                set_indicator_is_dragged(true);
+                handle_pointer_event(e, &range_2());
+            }
+            on:touchend=move |_e| { set_indicator_is_dragged.set(false) }
+            on:touchcancel=move |_e| { set_indicator_is_dragged.set(false) }
+            on:touchmove=handle_pointer_event_move>
             {move || match resource() {
                 Some(data) => {
                     match data {
@@ -118,16 +122,7 @@ pub fn Timeline(
             <img
                 src="/icons/pointer.svg"
                 class="pointer"
-                on:touchstart=move |e| {
-                    set_indicator_is_dragged(true);
-                    handle_pointer_event(e, &range_2());
-                }
-
-                on:touchend=move |_e| { set_indicator_is_dragged.set(false) }
-
-                on:touchcancel=move |_e| { set_indicator_is_dragged.set(false) }
-
-                on:touchmove=handle_pointer_event_move
+                node_ref = pointer_ref
             />
         </div>
     }
