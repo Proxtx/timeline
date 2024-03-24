@@ -94,6 +94,16 @@ impl Database {
             }}
         }
     }
+
+    pub fn generate_find_plugin_filter(plugin: AvailablePlugins) -> Document {
+        doc! {
+            "plugin": plugin.to_string()
+        }
+    }
+
+    pub fn combine_documents(a: Document, b: Document) -> Document {
+        doc! {"$and":  [a,b]}
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
