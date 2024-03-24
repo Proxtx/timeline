@@ -57,7 +57,11 @@ pub fn EventManger(
     let plugin_manager_e = plugin_manager.clone();
 
     let currently_available_plugins = move || match current_events()? {
-        Some(v) => APIResult::Ok(Some(v.keys().cloned().collect::<Vec<AvailablePlugins>>())),
+        Some(v) => {
+            let mut plugins = v.keys().cloned().collect::<Vec<AvailablePlugins>>();
+            plugins.sort_by(|s, o| {format!("{}", s).cmp(&format!("{}", o))});
+            APIResult::Ok(Some(plugins))
+        },
         None => Ok(None),
     };
 
@@ -150,6 +154,8 @@ fn AppSelect(
             background-color: var(--darkColor);
             box-sizing: border-box;
             overflow: hidden;
+            overflow-x: auto;
+            gap: var(--contentSpacing);
         }
 
         .icon {

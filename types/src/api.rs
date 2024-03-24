@@ -23,7 +23,7 @@ impl fmt::Display for APIError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DatabaseError(e) => {
-                write!(f, "Error executing API Request. Database Error: {}", e)
+                write!(f, "Error executing API Request: Database Error: {}", e)
             }
             Self::AuthenticationError => {
                 write!(
@@ -33,15 +33,15 @@ impl fmt::Display for APIError {
             }
             #[cfg(feature = "client")]
             Self::RequestError(str) => {
-                write!(f, "Request Error: {}", str)
+                write!(f, "Error executing API Request: HTTP-Request Error: {}", str)
             }
             Self::SerdeJsonError(txt) => {
-                write!(f, "Error converting data to/from json: {}", txt)
+                write!(f, "Error executing API Request: Error converting data to/from json: {}", txt)
             }
             Self::PluginError(txt) => {
                 write!(
                     f,
-                    "Error executing API Request. Encountered a plugin error: {}",
+                    "Error executing API Request: Encountered a plugin error: {}",
                     txt
                 )
             }
