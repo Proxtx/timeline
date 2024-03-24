@@ -105,6 +105,7 @@ fn Timeline() -> impl IntoView {
         .dateSelectWrapper {
             max-height: 0px;
             transition: 0.1s;
+            overflow: hidden;
         }
     };
 
