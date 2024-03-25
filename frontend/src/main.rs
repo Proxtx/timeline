@@ -5,7 +5,7 @@ mod timeline;
 mod wrappers;
 
 use {
-    chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, Utc},
+    chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
     leptos::*,
     leptos_router::*,
     plugin_manager::{Plugin, PluginData},
@@ -159,6 +159,10 @@ fn Timeline() -> impl IntoView {
         <StyledView>
             {move || match range() {
                 Ok(range) => {
+                    write_current_time(TimeRange {
+                        start: range.start,
+                        end: range.start.checked_add_signed(TimeDelta::try_hours(1).unwrap()).unwrap()
+                    });
                     let r3 = range.clone();
                     view! { class=css,
                         <TitleBar

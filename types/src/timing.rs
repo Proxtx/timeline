@@ -45,12 +45,12 @@ fn prefix_number(num: u32) -> String {
 
 impl TimeRange {
     pub fn overlap_range(&self, other: &TimeRange) -> bool {
-        (other.start >= self.start && other.start <= self.end)
-            || (other.end >= self.start && other.end <= self.end)
+        (other.start >= self.start && other.start < self.end)
+            || (other.end > self.start && other.end <= self.end)
     }
 
     pub fn includes(&self, other: &DateTime<Utc>) -> bool {
-        other >= &self.start && other <= &self.end
+        other >= &self.start && other < &self.end
     }
 
     pub fn overlap_timing(&self, other: &Timing) -> bool {

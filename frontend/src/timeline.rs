@@ -1,11 +1,10 @@
 use {
     crate::api::api_request,
-    chrono::{DateTime, TimeDelta, Utc},
+    chrono::{DateTime, SubsecRound, TimeDelta, Timelike, Utc},
     leptos::{ev::TouchEvent, *},
     rand::Rng,
     stylers::style,
     types::timing::{Marker, TimeRange},
-    web_sys::{wasm_bindgen::JsCast, HtmlElement},
 };
 
 #[component]
@@ -56,7 +55,7 @@ pub fn Timeline(
         let pos_percent = e.touches().item(0).unwrap().page_x() as f64
             / leptos::window().inner_width().unwrap().as_f64().unwrap()
             * 100.;
-        let _ = pointer_ref().unwrap().style("left", &format!("{}%", pos_percent));
+        let _ = pointer_ref().unwrap().style("left", format!("{}%", pos_percent));
 
         let start_time_millis = map_range(
             (0., 100.),
@@ -67,8 +66,9 @@ pub fn Timeline(
             pos_percent,
         );
 
-        let start_time: DateTime<Utc> =
+        let mut start_time: DateTime<Utc> =
             DateTime::from_timestamp_millis(start_time_millis as i64).unwrap();
+        start_time = start_time.round_subsecs(0).with_second(0).unwrap().with_minute(0).unwrap();
         let end_time = start_time
             .checked_add_signed(TimeDelta::try_hours(1).unwrap())
             .unwrap();

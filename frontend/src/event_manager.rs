@@ -292,6 +292,7 @@ fn EventDisplay(
             padding: calc(var(--contentSpacing) * 0.7);
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
     };
 
