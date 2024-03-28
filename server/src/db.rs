@@ -122,6 +122,8 @@ pub enum DatabaseError {
     MongoDBError(MongoDBError),
 }
 
+impl std::error::Error for DatabaseError {}
+
 impl fmt::Display for DatabaseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

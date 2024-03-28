@@ -22,7 +22,8 @@ fn main() {
     #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash, Clone)]
     #[allow(non_camel_case_types)]
     pub enum AvailablePlugins {{
-        {}
+        {},
+        error
     }}
 
     impl fmt::Display for AvailablePlugins {{
