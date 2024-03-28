@@ -6,6 +6,7 @@ mod cache;
 mod config;
 mod db;
 mod plugin_manager;
+mod error;
 
 use {
     chrono::Duration,
@@ -25,6 +26,7 @@ use {
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
+
 
 pub trait Plugin: Send + Sync {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
