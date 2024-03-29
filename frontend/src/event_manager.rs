@@ -1,7 +1,7 @@
 use {
     crate::{
         api::{api_request, relative_url},
-        plugin_manager::{PluginManager, Style},
+        plugin_manager::{IconLocation, PluginManager, Style},
     },
     leptos::*,
     std::{
@@ -190,10 +190,12 @@ fn AppSelect(
                 key=|app| format!("{}", app)
 
                 children=move |t| {
-                    let url = relative_url("/api/icon/")
-                        .unwrap()
-                        .join(&format!("{}", t))
-                        .unwrap();
+                    let url = match plugin_manager().get_icon(&t) {
+                        IconLocation::Default => {
+                            relative_url("/api/icon/").unwrap().join(&format!("{}", t)).unwrap()
+                        }
+                        IconLocation::Custom(v) => v,
+                    };
                     let type_2 = t.clone();
                     let type_3 = t.clone();
                     let plg = plugin_manager.clone();
@@ -301,8 +303,10 @@ fn EventDisplay(
     let event_3 = event.clone();
 
     let plugin_manager_2 = plugin_manager.clone();
+    let plugin_manager_3 = plugin_manager.clone();
 
     let plugin_2 = plugin.clone();
+    let plugin_3 = plugin.clone();
 
     view! { class=css,
         <div
@@ -312,8 +316,11 @@ fn EventDisplay(
             }
         >
 
-            <div class="titleWrapper" on:click=move |_| expanded.set(!expanded.get())>
-
+            <div
+                class="titleWrapper"
+                on:click=move |_| expanded.set(!expanded.get())
+                style:color=move || { plugin_manager_3().get_style(&plugin_3()).text() }
+            >
                 <h3>{move || event_2().title}</h3>
                 <a>{move || format!("{}", event_3().time)}</a>
             </div>

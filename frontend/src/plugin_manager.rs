@@ -13,12 +13,18 @@ pub trait Plugin {
     fn get_component(&self, data: PluginEventData) -> EventResult<Box<dyn FnOnce() -> View>>;
 
     fn get_style(&self) -> Style;
+
+    
+    fn get_icon(&self) -> IconLocation {
+        IconLocation::Default
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Style {
     Acc1,
     Acc2,
+    Light
 }
 
 impl Style {
@@ -26,6 +32,14 @@ impl Style {
         match self {
             Style::Acc1 => "var(--accentColor1Light)",
             Style::Acc2 => "var(--accentColor2Light)",
+            Style::Light => "var(--lightColor)",
+        }
+    }
+
+    pub fn text(&self) -> &'static str {
+        match self {
+            Style::Light => "var(--darkColor)",
+            _ => "var(--lightColor)"
         }
     }
 }
@@ -38,6 +52,9 @@ impl fmt::Display for Style {
             }
             Style::Acc2 => {
                 write!(f, "var(--accentColor2)")
+            }
+            Style::Light => {
+                write!(f, "var(--lighterColor)")
             }
         }
     }
@@ -77,6 +94,10 @@ impl PluginManager {
     pub fn get_style(&self, plugin: &AvailablePlugins) -> Style {
         self.plugins.get(plugin).unwrap().get_style()
     }
+
+    pub fn get_icon(&self, plugin: &AvailablePlugins) -> IconLocation {
+        self.plugins.get(plugin).unwrap().get_icon()
+    }
 }
 
 pub struct PluginEventData<'a> {
@@ -93,10 +114,6 @@ impl<'a> PluginEventData<'a> {
 
     pub fn get_raw(&self) -> &str {
         self.data
-    }
-
-    pub fn get_icon(&self) -> IconLocation {
-        IconLocation::Default
     }
 }
 

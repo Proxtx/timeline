@@ -3,6 +3,7 @@ mod event_manager;
 mod plugin_manager;
 mod timeline;
 mod wrappers;
+mod error;
 
 use {
     chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
@@ -161,7 +162,10 @@ fn Timeline() -> impl IntoView {
                 Ok(range) => {
                     write_current_time(TimeRange {
                         start: range.start,
-                        end: range.start.checked_add_signed(TimeDelta::try_hours(1).unwrap()).unwrap()
+                        end: range
+                            .start
+                            .checked_add_signed(TimeDelta::try_hours(1).unwrap())
+                            .unwrap(),
                     });
                     let r3 = range.clone();
                     view! { class=css,

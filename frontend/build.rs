@@ -10,7 +10,7 @@ fn main() {
     let mut out_path = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     out_path = out_path.join("out");
     out_path.set_file_name("plugins.rs");
-    let plugins: Vec<(String, String)> = fs::read_dir("../plugins")
+    let mut plugins: Vec<(String, String)> = fs::read_dir("../plugins")
         .expect("Plugins Folder not found.")
         .map(|v| {
             let dir_entry = v.expect("unable to read directory");
@@ -48,6 +48,7 @@ fn main() {
         );
         output
     });
+    plugins.push(("error".to_string(), "".to_string()));
     let init_str = plugins
         .iter()
         .map(|v| {
