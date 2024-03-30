@@ -32,6 +32,7 @@ pub fn TitleBar(
 
         .subtitle {
             color: var(--accentColor1);
+            text-decoration: none;
         }
     };
 
@@ -44,7 +45,11 @@ pub fn TitleBar(
             {move || match subtitle() {
                 Some(v) => {
                     view! { class=style,
-                        <a class="subtitle" on:click=subtitle_click_callback>
+                        <a
+                            href="javascript:this.click()"
+                            class="subtitle"
+                            on:click=subtitle_click_callback
+                        >
                             {v}
                         </a>
                     }

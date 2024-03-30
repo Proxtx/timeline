@@ -294,6 +294,11 @@ fn EventDisplay(
             padding: calc(var(--contentSpacing) * 0.7);
             display: flex;
             flex-direction: column;
+            background: none;
+            border: none;
+            font-family: Rubik;
+            font-size: unset;
+            width: 100%;
         }
     };
 
@@ -316,14 +321,14 @@ fn EventDisplay(
             }
         >
 
-            <div
+            <button
                 class="titleWrapper"
                 on:click=move |_| expanded.set(!expanded.get())
                 style:color=move || { plugin_manager_3().get_style(&plugin_3()).text() }
             >
                 <h3>{move || event_2().title}</h3>
                 <a>{move || format!("{}", event_3().time)}</a>
-            </div>
+            </button>
             <EventContent
                 plugin_manager=plugin_manager
                 data=Signal::derive(move || { event().data })
