@@ -1,7 +1,7 @@
 use {
     crate::api::api_request,
     chrono::{DateTime, SubsecRound, TimeDelta, Timelike, Utc},
-    leptos::{ev::TouchEvent, *},
+    leptos::*,
     rand::Rng,
     stylers::style,
     types::timing::{Marker, TimeRange},
@@ -50,9 +50,8 @@ pub fn Timeline(
     };
     let pointer_ref: NodeRef<html::Img> = create_node_ref();
 
-    let handle_pointer_event = move |e: TouchEvent, range: &TimeRange| {
-        e.prevent_default();
-        let pos_percent = e.touches().item(0).unwrap().page_x() as f64
+    let handle_pointer_event = move |pageX: i32, range: &TimeRange| {
+        let pos_percent = pageX as f64
             / leptos::window().inner_width().unwrap().as_f64().unwrap()
             * 100.;
         let _ = pointer_ref().unwrap().style("left", format!("{}%", pos_percent));
@@ -81,30 +80,49 @@ pub fn Timeline(
     let range_moved = range.clone();
     let (indicator_is_dragged, set_indicator_is_dragged) = create_signal(false);
 
-    let handle_pointer_event_move = move |e: TouchEvent| {
+    let handle_pointer_event_move = move |pageX: i32, range: &TimeRange| {
         if indicator_is_dragged() {
-            handle_pointer_event(e, &range_moved.get())
+            handle_pointer_event(pageX, range)
         }
     };
 
     let range_2 = range.clone();
+    let range_3 = range.clone();
+    let range_4 = range.clone();
 
 
     view! { class=style,
-        <div class="timeline" class:loading=move || resource().is_none() 
+        <div
+            class="timeline"
+            class:loading=move || resource().is_none()
             on:touchstart=move |e| {
                 set_indicator_is_dragged(true);
-                handle_pointer_event(e, &range_2());
+                handle_pointer_event(e.touches().item(0).unwrap().page_x(), &range_2());
             }
+
             on:touchend=move |_e| { set_indicator_is_dragged.set(false) }
             on:touchcancel=move |_e| { set_indicator_is_dragged.set(false) }
-            on:touchmove=handle_pointer_event_move>
+            on:touchmove=move |e| {
+                handle_pointer_event_move(e.touches().item(0).unwrap().page_x(), &range_moved())
+            }
+
+            on:mousedown=move |e| {
+                set_indicator_is_dragged(true);
+                handle_pointer_event(e.page_x(), &range_3());
+            }
+
+            on:mousemove=move |e| { handle_pointer_event_move(e.page_x(), &range_4()) }
+            on:mouseup=move |_e| {
+                set_indicator_is_dragged(false);
+            }
+        >
+
             {move || match resource() {
                 Some(data) => {
                     match data {
                         Ok(data) => {
                             let range_3 = range.clone();
-                                (move || get_circles(&range_3(), &data)).into_view()
+                            (move || get_circles(&range_3(), &data)).into_view()
                         }
                         Err(e) => {
                             view! {
@@ -119,11 +137,7 @@ pub fn Timeline(
                 None => ().into_view(),
             }}
 
-            <img
-                src="/icons/pointer.svg"
-                class="pointer"
-                node_ref = pointer_ref
-            />
+            <img src="/icons/pointer.svg" class="pointer" node_ref=pointer_ref/>
         </div>
     }
 }
