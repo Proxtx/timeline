@@ -45,7 +45,7 @@ pub fn TitleBar(
             {move || match subtitle() {
                 Some(v) => {
                     view! { class=style,
-                        <a href="javascript:null" class="subtitle" on:click=subtitle_click_callback>
+                        <a href="javascript:" class="subtitle" on:click=subtitle_click_callback>
                             {v}
                         </a>
                     }
