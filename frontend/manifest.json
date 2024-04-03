@@ -1,0 +1,16 @@
+{
+  "short_name": "Timeline",
+  "name": "Timeline",
+  "icons": [
+    { "src": "/lib/img/icon.png", "type": "image/png", "sizes": "333x333" },
+    { "src": "/lib/img/icon144.png", "type": "image/png", "sizes": "144x144" },
+    { "src": "/favicon.ico", "type": "image/ico", "sizes": "256x256" }
+  ],
+  "id": "/",
+  "start_url": "/",
+  "background_color": "#2589bd",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#2589bd",
+  "description": "Timeline Web UI"
+}
