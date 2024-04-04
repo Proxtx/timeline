@@ -35,8 +35,19 @@ fn MainView() -> impl IntoView {
                 <Route path="/timeline/:date" view=Timeline/>
                 <Route path="/timeline" view=Timeline/>
                 <Route path="/" view=Redirect/>
+                <Route path="*not_found" view=NotFound/>
             </Routes>
         </Router>
+    }
+}
+
+#[component]
+fn NotFound() -> impl IntoView {
+    view! {
+        <StyledView>
+            <TitleBar subtitle=Some("404 - Not Found".to_string())/>
+            <div class="errorWrapper">Was unable to find the page you are looking for.</div>
+        </StyledView>
     }
 }
 

@@ -2,8 +2,8 @@
   "short_name": "Timeline",
   "name": "Timeline",
   "icons": [
-    { "src": "/lib/img/icon.png", "type": "image/png", "sizes": "333x333" },
-    { "src": "/lib/img/icon144.png", "type": "image/png", "sizes": "144x144" },
+    { "src": "/icons/logo.png", "type": "image/png", "sizes": "605x605" },
+    { "src": "/icons/logo144.png", "type": "image/png", "sizes": "144x144" },
     { "src": "/favicon.ico", "type": "image/ico", "sizes": "256x256" }
   ],
   "id": "/",
