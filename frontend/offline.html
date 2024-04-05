@@ -4,8 +4,64 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Timeline</title>
+    <style>
+      @font-face {
+        font-family: Rubik;
+        src: url("Rubik.ttf");
+      }
+
+      :root {
+        --darkColor: #292f36;
+        --darkColorLight: #86888c;
+        --lightColor: #fcfafa;
+        --lighterColor: #c9c9cb;
+        --accentColor1: #2589bd;
+        --accentColor1Light: #84bbd8;
+        --accentColor2: #b0413e;
+        --accentColor2Light: #d29291;
+        --accentColor2Darker: #803a3b;
+        --contentSpacing: 12px;
+      }
+
+      body,
+      html {
+        height: 100%;
+        overscroll-behavior: none;
+      }
+
+      body {
+        font-family: sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: var(--accentColor1);
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+        margin: 0;
+        padding: 0;
+      }
+
+      .title {
+        color: var(--lightColor);
+      }
+
+      .infoWrapper {
+        background-color: var(--accentColor1Light);
+        padding: var(--contentSpacing);
+      }
+
+      .errorWrapper {
+        background-color: var(--accentColor2Light);
+        padding: var(--contentSpacing);
+      }
+    </style>
   </head>
   <body>
-    You are offline!
+    <div class="errorWrapper"><h2>You are offline!</h2></div>
   </body>
 </html>
