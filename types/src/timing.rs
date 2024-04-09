@@ -47,6 +47,8 @@ impl TimeRange {
     pub fn overlap_range(&self, other: &TimeRange) -> bool {
         (other.start >= self.start && other.start < self.end)
             || (other.end > self.start && other.end <= self.end)
+            || (self.start >= other.start && self.start < other.end)
+            || (self.end > other.start && self.end <= other.end)
     }
 
     pub fn includes(&self, other: &DateTime<Utc>) -> bool {
