@@ -24,21 +24,24 @@ pub trait Plugin {
 pub enum Style {
     Acc1,
     Acc2,
-    Light
+    Light,
+    Custom(String, String, String)
 }
 
 impl Style {
-    pub fn light(&self) -> &'static str {
+    pub fn light(&self) -> &str {
         match self {
             Style::Acc1 => "var(--accentColor1Light)",
             Style::Acc2 => "var(--accentColor2Light)",
             Style::Light => "var(--lightColor)",
+            Style::Custom(light_color, _, _) => &light_color
         }
     }
 
-    pub fn text(&self) -> &'static str {
+    pub fn text(&self) -> &str {
         match self {
             Style::Light => "var(--darkColor)",
+            Style::Custom(_, _, text_color) => &text_color,
             _ => "var(--lightColor)"
         }
     }
@@ -56,6 +59,7 @@ impl fmt::Display for Style {
             Style::Light => {
                 write!(f, "var(--lighterColor)")
             }
+            Style::Custom(_, dark_color, _) => write!(f, "{}", dark_color)
         }
     }
 }

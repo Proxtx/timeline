@@ -324,7 +324,7 @@ fn EventDisplay(
             <button
                 class="titleWrapper"
                 on:click=move |_| expanded.set(!expanded.get())
-                style:color=move || { plugin_manager_3().get_style(&plugin_3()).text() }
+                style:color=move || { plugin_manager_3().get_style(&plugin_3()).text().to_string() }
             >
                 <h3>{move || event_2().title}</h3>
                 <a>{move || format!("{}", event_3().time)}</a>
@@ -395,7 +395,7 @@ fn ShowResultEventView(
         }
     };
     view! { class=css,
-        <div class="wrapper" style:background-color=move || { style().light() }>
+        <div class="wrapper" style:background-color=move || { style().light().to_string() }>
 
             {move || match view() {
                 Ok(v) => v,
