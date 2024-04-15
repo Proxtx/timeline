@@ -34,14 +34,14 @@ impl Style {
             Style::Acc1 => "var(--accentColor1Light)",
             Style::Acc2 => "var(--accentColor2Light)",
             Style::Light => "var(--lightColor)",
-            Style::Custom(light_color, _, _) => &light_color
+            Style::Custom(light_color, _, _) => light_color
         }
     }
 
     pub fn text(&self) -> &str {
         match self {
             Style::Light => "var(--darkColor)",
-            Style::Custom(_, _, text_color) => &text_color,
+            Style::Custom(_, _, text_color) => text_color,
             _ => "var(--lightColor)"
         }
     }
