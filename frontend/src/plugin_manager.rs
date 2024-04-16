@@ -34,7 +34,7 @@ impl Style {
             Style::Acc1 => "var(--accentColor1Light)",
             Style::Acc2 => "var(--accentColor2Light)",
             Style::Light => "var(--lightColor)",
-            Style::Custom(light_color, _, _) => light_color
+            Style::Custom(_, light_color, _) => light_color
         }
     }
 
@@ -59,7 +59,7 @@ impl fmt::Display for Style {
             Style::Light => {
                 write!(f, "var(--lighterColor)")
             }
-            Style::Custom(_, dark_color, _) => write!(f, "{}", dark_color)
+            Style::Custom(dark_color, _, _) => write!(f, "{}", dark_color)
         }
     }
 }
