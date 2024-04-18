@@ -25,6 +25,7 @@ pub enum Style {
     Acc1,
     Acc2,
     Light,
+    Dark,
     Custom(String, String, String)
 }
 
@@ -34,6 +35,7 @@ impl Style {
             Style::Acc1 => "var(--accentColor1Light)",
             Style::Acc2 => "var(--accentColor2Light)",
             Style::Light => "var(--lightColor)",
+            Style::Dark => "var(--darkColot)",
             Style::Custom(_, light_color, _) => light_color
         }
     }
@@ -58,6 +60,9 @@ impl fmt::Display for Style {
             }
             Style::Light => {
                 write!(f, "var(--lighterColor)")
+            }
+            Style::Dark => {
+                write!(f, "var(--darkColorLight)")
             }
             Style::Custom(dark_color, _, _) => write!(f, "{}", dark_color)
         }
