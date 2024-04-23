@@ -321,5 +321,6 @@ fn set_password_cookie(password: String) {
     let html_doc: web_sys::HtmlDocument = document().dyn_into().unwrap();
     let mut cookie = cookie::Cookie::new("pwd", password);
     cookie.set_path("/");
+    cookie.set_expires(Some("Fri, 31 Dec 9999 23:59:59 GMT"));
     html_doc.set_cookie(&cookie.to_string()).unwrap();
 }
