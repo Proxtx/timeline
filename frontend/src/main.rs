@@ -6,18 +6,10 @@ mod wrappers;
 mod error;
 
 use {
-    chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
-    leptos::*,
-    leptos_router::*,
-    plugin_manager::{Plugin, PluginData},
-    std::{collections::HashMap, str::FromStr},
-    stylers::style,
-    types::{
+    chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc}, leptos::*, leptos_router::*, plugin_manager::{Plugin, PluginData}, std::{collections::HashMap, str::FromStr}, stylers::style, types::{
         api::{APIError, APIResult, AvailablePlugins},
         timing::TimeRange,
-    },
-    web_sys::wasm_bindgen::JsCast,
-    wrappers::{StyledView, TitleBar},
+    }, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
@@ -321,6 +313,5 @@ fn set_password_cookie(password: String) {
     let html_doc: web_sys::HtmlDocument = document().dyn_into().unwrap();
     let mut cookie = cookie::Cookie::new("pwd", password);
     cookie.set_path("/");
-    cookie.set_expires(Some("Fri, 31 Dec 9999 23:59:59 GMT"));
-    html_doc.set_cookie(&cookie.to_string()).unwrap();
+    html_doc.set_cookie(&format!("{} expires=Fri, 31 Dec 9999 23:59:59 GMT;", cookie)).unwrap();
 }
