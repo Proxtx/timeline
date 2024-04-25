@@ -55,13 +55,28 @@ impl crate::Plugin for Plugin {
     }
 }
 
-pub fn error (database: Arc<Database>, error: &impl std::error::Error, plugin: Option<AvailablePlugins>, error_url: Option<Url>) {
+pub fn error (database: Arc<Database>, error: &impl std::error::Error, plugin: Option<AvailablePlugins>, error_url: &Option<Url>) {
     error_string(database, format!("{}", error), plugin, error_url)
 }
 
-pub fn error_string(database: Arc<Database>, error: String, plugin: Option<AvailablePlugins>, error_url: Option<Url>) {
-    let plugin_2 = plugin.clone();
-    let error_2 = error.clone();
+pub fn error_string(database: Arc<Database>, error: String, plugin: Option<AvailablePlugins>, error_url: &Option<Url>) {
+    if let Some(ref url) = error_url {
+        let mut url = url.clone();
+        let mut pairs = url.query_pairs_mut();
+        pairs.append_pair("error", &error);
+        if let Some(v) = plugin.clone() {
+            pairs.append_pair("plugin", &v.to_string());
+        }
+        drop(pairs);        
+        let url = url.clone();
+
+        tokio::spawn(async move {            
+            let res = reqwest::get(url).await;
+            if let Err(e) = res {
+                println!("Unable to perform get request on error occurrence: {}", e);
+            }
+        });
+    }
 
     tokio::spawn(async move {
         let now = Utc::now();
@@ -74,19 +89,4 @@ pub fn error_string(database: Arc<Database>, error: String, plugin: Option<Avail
             println!("Was unable to report error to database: {e}. Original error: \n{error}")
         }
     });
-    if let Some(mut url) = error_url {
-        tokio::spawn(async move {
-            let mut pairs = url.query_pairs_mut();
-            pairs.append_pair("error", &error_2);
-            if let Some(v) = plugin_2 {
-                pairs.append_pair("plugin", &v.to_string());
-            }
-            pairs.finish();
-            drop(pairs);
-            let res = reqwest::get("https://google.com").await;
-            if let Err(e) = res {
-                println!("Unable to perform get request on error occurrence: {}", e);
-            }
-        });
-    }
 }

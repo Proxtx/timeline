@@ -128,10 +128,10 @@ pub struct PluginData {
 
 impl PluginData {
     pub fn report_error(&self, error: &impl std::error::Error){
-        error::error(self.database.clone(), error, Some(self.plugin.clone()), self.error_url.clone())
+        error::error(self.database.clone(), error, Some(self.plugin.clone()), &self.error_url)
     }
 
     pub fn report_error_string(&self, string: String) {
-        error::error_string(self.database.clone(), string, Some(self.plugin.clone()), self.error_url.clone())
+        error::error_string(self.database.clone(), string, Some(self.plugin.clone()), &self.error_url)
     }
 }
