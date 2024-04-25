@@ -22,7 +22,7 @@ use {
     types::{
         api::{AvailablePlugins, CompressedEvent},
         timing::TimeRange,
-    },
+    }, url::Url,
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
@@ -78,6 +78,8 @@ async fn rocket() -> _ {
     let plugins = Plugins::init(|plugin| PluginData {
         database: db.clone(),
         config: config.plugin_config.remove(&plugin),
+        plugin,
+        error_url: config.error_report_url.clone()
     })
     .await;
 
@@ -120,4 +122,16 @@ async fn not_found(
 pub struct PluginData {
     pub database: Arc<Database>,
     pub config: Option<toml::Value>,
+    plugin: AvailablePlugins,
+    error_url: Option<Url>
+}
+
+impl PluginData {
+    pub fn report_error(&self, error: &impl std::error::Error){
+        error::error(self.database.clone(), error, Some(self.plugin.clone()), self.error_url.clone())
+    }
+
+    pub fn report_error_string(&self, string: String) {
+        error::error_string(self.database.clone(), string, Some(self.plugin.clone()), self.error_url.clone())
+    }
 }
