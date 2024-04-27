@@ -39,7 +39,14 @@ pub fn TitleBar(
     view! { class=style,
         <div class="wrapper">
             <div class="titleWrapper">
-                <img src="/icons/logo_transparent.png" class="logo"/>
+                <img
+                    src="/icons/logo_transparent.png"
+                    class="logo"
+                    on:click=|_v| {
+                        let _ = leptos::window().location().reload();
+                    }
+                />
+
                 <h1 class="title">Timeline</h1>
             </div>
             {move || match subtitle() {
