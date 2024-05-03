@@ -7,7 +7,6 @@ mod config;
 mod db;
 mod error;
 mod plugin_manager;
-mod server;
 
 use {
     chrono::Duration,
