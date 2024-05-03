@@ -5,8 +5,9 @@ mod api;
 mod cache;
 mod config;
 mod db;
-mod plugin_manager;
 mod error;
+mod plugin_manager;
+mod server;
 
 use {
     chrono::Duration,
@@ -22,11 +23,11 @@ use {
     types::{
         api::{AvailablePlugins, CompressedEvent},
         timing::TimeRange,
-    }, url::Url,
+    },
+    url::Url,
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
-
 
 pub trait Plugin: Send + Sync {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
@@ -79,7 +80,7 @@ async fn rocket() -> _ {
         database: db.clone(),
         config: config.plugin_config.remove(&plugin),
         plugin,
-        error_url: config.error_report_url.clone()
+        error_url: config.error_report_url.clone(),
     })
     .await;
 
@@ -123,15 +124,25 @@ pub struct PluginData {
     pub database: Arc<Database>,
     pub config: Option<toml::Value>,
     plugin: AvailablePlugins,
-    error_url: Option<Url>
+    error_url: Option<Url>,
 }
 
 impl PluginData {
-    pub fn report_error(&self, error: &impl std::error::Error){
-        error::error(self.database.clone(), error, Some(self.plugin.clone()), &self.error_url)
+    pub fn report_error(&self, error: &impl std::error::Error) {
+        error::error(
+            self.database.clone(),
+            error,
+            Some(self.plugin.clone()),
+            &self.error_url,
+        )
     }
 
     pub fn report_error_string(&self, string: String) {
-        error::error_string(self.database.clone(), string, Some(self.plugin.clone()), &self.error_url)
+        error::error_string(
+            self.database.clone(),
+            string,
+            Some(self.plugin.clone()),
+            &self.error_url,
+        )
     }
 }

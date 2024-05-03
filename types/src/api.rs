@@ -33,10 +33,18 @@ impl fmt::Display for APIError {
             }
             #[cfg(feature = "client")]
             Self::RequestError(str) => {
-                write!(f, "Error executing API Request: HTTP-Request Error: {}", str)
+                write!(
+                    f,
+                    "Error executing API Request: HTTP-Request Error: {}",
+                    str
+                )
             }
             Self::SerdeJsonError(txt) => {
-                write!(f, "Error executing API Request: Error converting data to/from json: {}", txt)
+                write!(
+                    f,
+                    "Error executing API Request: Error converting data to/from json: {}",
+                    txt
+                )
             }
             Self::PluginError(txt) => {
                 write!(

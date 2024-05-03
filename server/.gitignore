@@ -4,3 +4,4 @@ cache/*
 src/server.rs
 # use the dependency generator
 Cargo.toml
+Cargo.lock

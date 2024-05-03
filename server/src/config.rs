@@ -1,7 +1,8 @@
 use {
     serde::Deserialize,
     std::{collections::HashMap, fmt},
-    tokio::{fs::File, io::AsyncReadExt}, url::Url,
+    tokio::{fs::File, io::AsyncReadExt},
+    url::Url,
 };
 
 #[derive(Deserialize, Debug, Clone)]
@@ -11,7 +12,7 @@ pub struct Config {
     pub db_connection_string: String,
     pub database: String,
     pub plugin_config: HashMap<crate::AvailablePlugins, toml::Value>,
-    pub error_report_url: Option<Url>
+    pub error_report_url: Option<Url>,
 }
 
 impl Config {
