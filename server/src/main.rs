@@ -103,7 +103,7 @@ async fn rocket() -> _ {
         );
 
     for (plugin, routes) in plugins.routes {
-        rocket_state = rocket_state.mount(format!("/api/plugin/{}", plugin), routes);
+        rocket_state = rocket_state.mount(format!("/api/plugin/{}", plugin), routes).manage(plugin_manager.plugins.get(plugin).unwrap());
     }
 
     rocket_state
