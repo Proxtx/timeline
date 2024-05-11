@@ -95,4 +95,8 @@ impl PluginManager {
         }
         .boxed()
     }
+
+    pub fn get_plugin(&self, plugin: &AvailablePlugins) -> &ThreadedPlugin {
+        self.plugins.get(plugin).unwrap()
+    }
 }
