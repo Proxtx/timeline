@@ -12,7 +12,10 @@ use {
     chrono::Duration,
     db::Database,
     rocket::{
-        catch, catchers, fs::FileServer, response::{content, status}, routes, Build, Request, Rocket, Route
+        catch, catchers,
+        fs::FileServer,
+        response::{content, status},
+        routes, Build, Request, Rocket, Route,
     },
     std::{io, pin::Pin, sync::Arc},
     tokio::fs::File,
@@ -57,7 +60,7 @@ pub trait Plugin: Send + Sync {
         Vec::new()
     }
 
-    fn rocket_build_access(&self, rocket: Rocket<Build>) -> Rocket<Build>{
+    fn rocket_build_access(&self, rocket: Rocket<Build>) -> Rocket<Build> {
         rocket
     }
 }
@@ -101,12 +104,16 @@ async fn rocket() -> _ {
                 api::auth_request
             ],
         );
-        
+
     for (plugin, routes) in plugins.routes {
         rocket_state = rocket_state.mount(format!("/api/plugin/{}", plugin), routes);
-        rocket_state = plugin_manager.get_plugin(&plugin).read().await.rocket_build_access(rocket_state);
+        rocket_state = plugin_manager
+            .get_plugin(&plugin)
+            .read()
+            .await
+            .rocket_build_access(rocket_state);
     }
-    
+
     rocket_state = rocket_state.manage(plugin_manager);
     rocket_state
 }
