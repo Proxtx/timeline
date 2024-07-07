@@ -28,6 +28,8 @@ pub fn TitleBar(
 
         .logo {
             height: 40px;
+            transition: 500ms;
+            transform: rotate(0deg);
         }
 
         .subtitle {
@@ -42,7 +44,8 @@ pub fn TitleBar(
                 <img
                     src="/icons/logo_transparent.png"
                     class="logo"
-                    on:click=|_v| {
+                    on:click=|v| {
+                        event_target(&v).style.transform = "rotate(360deg)";
                         let _ = leptos::window().location().reload();
                     }
                 />
