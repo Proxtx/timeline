@@ -104,7 +104,7 @@ pub mod markers {
 pub mod events {
     use {
         super::auth,
-        crate::{config::Config, plugin_manager::PluginManager},
+        crate::{config::Config, plugin_manager::{self, PluginManager}},
         mongodb::bson::doc,
         rocket::{
             fs::NamedFile,
@@ -144,6 +144,21 @@ pub mod events {
         path.push(plugin);
         path.push("icon.svg");
         NamedFile::open(path).await.ok()
+    }
+
+    #[get("/event/latest")]
+    pub async fn get_event(
+        config: &State<Config>,
+        plugin_manager: &State<PluginManager>,
+        cookies: &CookieJar<'_>,
+    ) -> status::Custom<Json<APIResult<(AvailablePlugins, CompressedEvent)>>> {
+        if let Err(e) = auth(cookies, config) {
+            return status::Custom(Status::Unauthorized, Json(Err(e)));
+        }
+        match plugin_manager.latest_event().await {
+            Ok(v) => status::Custom(Status::Ok, Json(Ok(v))),
+            Err(e) => status::Custom(Status::InternalServerError, Json(Err(e)))
+        }
     }
 }
 
