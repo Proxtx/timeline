@@ -52,10 +52,6 @@ impl PluginManager {
         Ok(app_events)
     }
 
-    pub async fn latest_event(&self, span: Duration) -> APIResult<(AvailablePlugins, CompressedEvent)> {
-        
-    }
-
     pub fn update_loop_mut(
         plugin: ThreadedPlugin,
     ) -> Pin<Box<dyn futures::Future<Output = ()> + Send>> {

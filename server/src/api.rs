@@ -103,10 +103,7 @@ pub mod markers {
 
 pub mod events {
     use {
-        super::auth,
-        crate::{config::Config, plugin_manager::{self, PluginManager}},
-        mongodb::bson::doc,
-        rocket::{
+        super::auth, crate::{config::Config, db::Database, plugin_manager::{self, PluginManager}}, futures::{io::Cursor, StreamExt}, mongodb::{bson::doc, options::FindOptions}, rocket::{
             fs::NamedFile,
             get,
             http::{CookieJar, Status},
@@ -114,12 +111,10 @@ pub mod events {
             response::status,
             serde::json::Json,
             State,
-        },
-        std::{collections::HashMap, path::PathBuf},
-        types::{
+        }, std::{collections::HashMap, path::PathBuf}, types::{
             api::{APIResult, AvailablePlugins, CompressedEvent},
             timing::TimeRange,
-        },
+        }
     };
 
     #[post("/events", data = "<request>")]
@@ -151,12 +146,42 @@ pub mod events {
         config: &State<Config>,
         plugin_manager: &State<PluginManager>,
         cookies: &CookieJar<'_>,
+        database: &State<Database>
     ) -> status::Custom<Json<APIResult<(AvailablePlugins, CompressedEvent)>>> {
         if let Err(e) = auth(cookies, config) {
             return status::Custom(Status::Unauthorized, Json(Err(e)));
         }
-        match plugin_manager.latest_event().await {
-            Ok(v) => status::Custom(Status::Ok, Json(Ok(v))),
+        
+        let aggregated_collection = database.events_collection().aggregate(vec![
+            doc! {
+                "$addFields": {
+                    "newestTime": {
+                        "$last": "timing"
+                    }
+                }
+            },
+            doc! {
+                "$sort": {
+                    "newestTime": 1
+                }
+            },
+            doc! {
+                "$project": {
+                    "newestTime": 0
+                }
+            }
+        ], None).await;
+        match aggregated_collection {
+            Ok(v) => {
+                match v.next().await {
+                    Ok(v) => {
+                        status::Custom(Status::Ok, Json(Ok(v)))
+                    }
+                    Err(e) => {
+                        status::Custom(Status::InternalServerError, Json(Err(e)))
+                    }
+                } 
+            },
             Err(e) => status::Custom(Status::InternalServerError, Json(Err(e)))
         }
     }
