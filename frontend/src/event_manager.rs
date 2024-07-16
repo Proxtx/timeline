@@ -280,10 +280,11 @@ fn EventsDisplay(
 }
 
 #[component]
-fn EventDisplay(
+pub fn EventDisplay(
     #[prop(into)] event: MaybeSignal<CompressedEvent>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
+    #[prop(default=create_rw_signal(false))] expanded: RwSignal<bool> 
 ) -> impl IntoView {
     let css = style! {
         .wrapper:first-child {
@@ -301,8 +302,6 @@ fn EventDisplay(
             width: 100%;
         }
     };
-
-    let expanded = create_rw_signal(false);
 
     let event_2 = event.clone();
     let event_3 = event.clone();

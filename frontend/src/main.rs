@@ -7,9 +7,9 @@ mod error;
 
 use {
     chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc}, leptos::*, leptos_router::*, plugin_manager::{Plugin, PluginData}, std::{collections::HashMap, str::FromStr}, stylers::style, types::{
-        api::{APIError, APIResult, AvailablePlugins},
+        api::{APIError, APIResult, AvailablePlugins, CompressedEvent},
         timing::TimeRange,
-    }, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}
+    }, api::api_request, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}, event_manager::EventDisplay
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
@@ -28,6 +28,8 @@ fn MainView() -> impl IntoView {
                 <Route path="/timeline" view=Timeline/>
                 <Route path="/" view=Redirect/>
                 <Route path="*not_found" view=NotFound/>
+                <Route path="/event/latest/exclude/:exclude" view=LatestEvent/>
+                <Route path="/event/latest" view=LatestEvent/>
             </Routes>
         </Router>
     }
@@ -47,6 +49,123 @@ fn NotFound() -> impl IntoView {
 fn Redirect() -> impl IntoView {
     use_navigate()("/timeline/", NavigateOptions::default());
     view! { <div class="intoWrapper">"Redirecting"</div> }
+}
+
+#[derive(Params, PartialEq, Clone)]
+struct LatestParams {
+    exclude: Option<String>
+}
+
+#[component]
+fn LatestEvent() -> impl IntoView {
+    let style = style! {
+        .wrapper {
+            flex: 1 0;
+            transition: 0.2s;
+            overflow: auto;
+        }
+    };
+
+    let (range, _write_range) = create_signal(TimeRange {
+        end: Utc::now(),
+        start: Utc::now().checked_sub_signed(chrono::TimeDelta::try_hours(1).unwrap()).unwrap()
+    });
+    let (last_authentication_attempt, write_last_authentication_attempt) =
+        create_signal(Utc::now().timestamp_millis());
+    let events = create_resource(move || (range(), last_authentication_attempt()), |(range, _)| async move  {
+        api_request::<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _>("/events", &range).await
+    });
+
+    let plugin_manager =
+        create_action(|_: &()| async { plugin_manager::PluginManager::new().await });
+    plugin_manager.dispatch(());
+
+    let params = use_params::<LatestParams>();
+    let exclude = create_memo(move |_| {
+        match params() {
+            Ok(v) => v.exclude.unwrap_or_default().split(",").map(|v|v.into()).collect::<Vec<String>>(),
+            Err(_e) => vec![]
+        }
+    });
+
+    let current_event = create_memo(move |_| {
+        match events() {
+            Some(v) => {
+                match v {
+                    Ok(v) => {
+                        let mut newest_event: Option<(AvailablePlugins, CompressedEvent)> = None;
+                        for (plugin, events) in v.into_iter() {
+                            if exclude().contains(&plugin.to_string()) {
+                                continue;
+                            }
+                            for event in events {
+                                let replace = if let Some(v) = &newest_event { 
+                                    v.1.time.cmp(&event.time).is_lt()
+                                } else {true};
+                                if replace {
+                                    newest_event = Some((plugin.clone(), event));
+                                }
+                            }
+                        }
+                        Some(Ok(newest_event))
+                    }
+                    Err(e) => Some(Err(e))
+                }
+            }
+            None => {
+                None
+            }
+        }
+    });
+
+    view! {
+        <StyledView>
+            {move || match (current_event(), plugin_manager.value()()) {
+                (Some(current_event), Some(plugin_manager)) => {
+                    match current_event {
+                        Ok(v) => {
+                            match v {
+                                Some((plugin, event)) => {
+                                    let color = format!("{}", plugin_manager.get_style(&plugin));
+                                    view! { class=style,
+                                        <div class="wrapper" style:background-color=color>
+
+                                            <EventDisplay event=event plugin_manager plugin=plugin expanded=create_rw_signal(true)/>
+                                        </div>
+                                    }
+                                        .into_view()
+                                }
+                                None => {
+                                    view! { <div class="infoWrapper">No Event Found</div> }
+                                        .into_view()
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            match e {
+                                APIError::AuthenticationError => {
+                                    view! {
+                                        <Login update_authentication=write_last_authentication_attempt/>
+                                    }
+                                        .into_view()
+                                }
+                                e => {
+                                    view! {
+                                        <div class="errorWrapper">
+                                            {move || format!("Error requesting event: {}", e)}
+                                        </div>
+                                    }
+                                        .into_view()
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => view! { <div class="infoWrapper">Loading</div> }.into_view(),
+            }}
+
+        </StyledView>
+    }
 }
 
 #[derive(Params, PartialEq, Clone)]

@@ -29,14 +29,6 @@ impl Database {
         self.database.collection("events")
     }
 
-    pub async fn find_one_event_with_custom_query<T>(
-        &self,
-        filter: impl Into<Option<Document>>,
-        options: impl Into<Option<FindOptions>>
-    ) -> DatabaseResult<Option<T>> {
-        Ok(self.database.collection("events").find_one(filter, options).await?)
-    }
-
     pub async fn find_events_with_custom_query<T>(
         &self,
         filter: impl Into<Option<Document>>,

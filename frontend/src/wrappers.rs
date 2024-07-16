@@ -1,4 +1,8 @@
-use {leptos::*, stylers::style, web_sys::MouseEvent};
+use {
+    leptos::*,
+    stylers::style,
+    web_sys::MouseEvent,
+};
 
 #[component]
 pub fn TitleBar(
@@ -45,7 +49,9 @@ pub fn TitleBar(
                     src="/icons/logo_transparent.png"
                     class="logo"
                     on:click=|v| {
-                        event_target(&v).style.transform = "rotate(360deg)";
+                        event_target::<web_sys::HtmlElement>(&v)
+                            .style()
+                            .set_property("transform", "rotate(360deg)").unwrap();
                         let _ = leptos::window().location().reload();
                     }
                 />

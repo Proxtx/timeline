@@ -140,51 +140,6 @@ pub mod events {
         path.push("icon.svg");
         NamedFile::open(path).await.ok()
     }
-
-    #[get("/event/latest")]
-    pub async fn get_event(
-        config: &State<Config>,
-        plugin_manager: &State<PluginManager>,
-        cookies: &CookieJar<'_>,
-        database: &State<Database>
-    ) -> status::Custom<Json<APIResult<(AvailablePlugins, CompressedEvent)>>> {
-        if let Err(e) = auth(cookies, config) {
-            return status::Custom(Status::Unauthorized, Json(Err(e)));
-        }
-        
-        let aggregated_collection = database.events_collection().aggregate(vec![
-            doc! {
-                "$addFields": {
-                    "newestTime": {
-                        "$last": "timing"
-                    }
-                }
-            },
-            doc! {
-                "$sort": {
-                    "newestTime": 1
-                }
-            },
-            doc! {
-                "$project": {
-                    "newestTime": 0
-                }
-            }
-        ], None).await;
-        match aggregated_collection {
-            Ok(v) => {
-                match v.next().await {
-                    Ok(v) => {
-                        status::Custom(Status::Ok, Json(Ok(v)))
-                    }
-                    Err(e) => {
-                        status::Custom(Status::InternalServerError, Json(Err(e)))
-                    }
-                } 
-            },
-            Err(e) => status::Custom(Status::InternalServerError, Json(Err(e)))
-        }
-    }
 }
 
 pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
