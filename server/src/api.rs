@@ -103,7 +103,15 @@ pub mod markers {
 
 pub mod events {
     use {
-        super::auth, crate::{config::Config, db::Database, plugin_manager::{self, PluginManager}}, futures::{io::Cursor, StreamExt}, mongodb::{bson::doc, options::FindOptions}, rocket::{
+        super::auth,
+        crate::{
+            config::Config,
+            db::Database,
+            plugin_manager::{self, PluginManager},
+        },
+        futures::{io::Cursor, StreamExt},
+        mongodb::{bson::doc, options::FindOptions},
+        rocket::{
             fs::NamedFile,
             get,
             http::{CookieJar, Status},
@@ -111,10 +119,12 @@ pub mod events {
             response::status,
             serde::json::Json,
             State,
-        }, std::{collections::HashMap, path::PathBuf}, types::{
+        },
+        std::{collections::HashMap, path::PathBuf},
+        types::{
             api::{APIResult, AvailablePlugins, CompressedEvent},
             timing::TimeRange,
-        }
+        },
     };
 
     #[post("/events", data = "<request>")]
