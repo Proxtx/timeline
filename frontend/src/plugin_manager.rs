@@ -35,7 +35,7 @@ impl Style {
             Style::Acc1 => "var(--accentColor1Light)",
             Style::Acc2 => "var(--accentColor2Light)",
             Style::Light => "var(--lightColor)",
-            Style::Dark => "var(--darkColot)",
+            Style::Dark => "var(--darkColor)",
             Style::Custom(_, light_color, _) => light_color
         }
     }

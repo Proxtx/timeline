@@ -129,8 +129,12 @@ fn LatestEvent() -> impl IntoView {
                                     let color = format!("{}", plugin_manager.get_style(&plugin));
                                     view! { class=style,
                                         <div class="wrapper" style:background-color=color>
-
-                                            <EventDisplay event=event plugin_manager plugin=plugin expanded=create_rw_signal(true)/>
+                                            <EventDisplay
+                                                event=event
+                                                plugin_manager
+                                                plugin=plugin
+                                                expanded=create_rw_signal(true)
+                                            />
                                         </div>
                                     }
                                         .into_view()
