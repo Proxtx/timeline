@@ -5,4 +5,5 @@ Timeline is a project 100% written in rust. Timeline aims to collect the most da
 # run timeline
 
 1. build the frontend by running trunk build --release in the frontend directory
-2. to run the timeline server simply run cargo run --release in the server directory
+2. run the package generator with cargo run
+3. to run the timeline server simply run cargo run --release in the server directory
