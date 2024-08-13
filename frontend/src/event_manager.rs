@@ -1,7 +1,7 @@
 use {
     crate::{
         api::{api_request, relative_url},
-        plugin_manager::{IconLocation, PluginManager, Style},
+        plugin_manager::{IconLocation, PluginManager, Style, EventError, EventResult},
     },
     leptos::*,
     std::{
@@ -222,8 +222,7 @@ fn AppSelect(
                                     let style = plg().get_style(&type_3);
                                     format!("{}", style)
                                 }
-                            >
-                            </div>
+                            ></div>
                         </div>
                     }
                 }
@@ -353,7 +352,7 @@ fn EventContent(
     view! {
         {move || match (expanded(), read_view()) {
             (true, Some(v)) => {
-                view! { <ShowResultEventView style=Signal::derive(style.clone()) view=v/> }
+                view! { <ShowResultEventView style=Signal::derive(style.clone()) view=v /> }
                     .into_view()
             }
             (true, None) => {
@@ -402,34 +401,5 @@ fn ShowResultEventView(
             }}
 
         </div>
-    }
-}
-
-pub type EventResult<T> = Result<T, EventError>;
-
-#[derive(Debug, Clone)]
-pub enum EventError {
-    FaultyInitData(String),
-}
-
-impl std::error::Error for EventError {}
-
-impl fmt::Display for EventError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::FaultyInitData(v) => {
-                write!(
-                    f,
-                    "Unable to parse initial data to generate Component: {}",
-                    v
-                )
-            }
-        }
-    }
-}
-
-impl From<serde_json::Error> for EventError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::FaultyInitData(format!("{}", value))
     }
 }

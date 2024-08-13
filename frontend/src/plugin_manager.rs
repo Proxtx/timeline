@@ -1,5 +1,5 @@
 use {
-    crate::{event_manager::EventResult, Plugins},
+    crate::Plugins,
     leptos::View,
     serde::de::DeserializeOwned,
     std::{collections::HashMap, fmt},
@@ -129,4 +129,33 @@ impl<'a> PluginEventData<'a> {
 pub enum IconLocation {
     Default,
     Custom(Url),
+}
+
+pub type EventResult<T> = Result<T, EventError>;
+
+#[derive(Debug, Clone)]
+pub enum EventError {
+    FaultyInitData(String),
+}
+
+impl std::error::Error for EventError {}
+
+impl fmt::Display for EventError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::FaultyInitData(v) => {
+                write!(
+                    f,
+                    "Unable to parse initial data to generate Component: {}",
+                    v
+                )
+            }
+        }
+    }
+}
+
+impl From<serde_json::Error> for EventError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::FaultyInitData(format!("{}", value))
+    }
 }
