@@ -15,6 +15,8 @@ pub enum APIError {
     SerdeJsonError(String),
     PluginError(String),
     Custom(String),
+    #[cfg(feature = "experiences")]
+    ExperienceError(String),
 }
 
 impl std::error::Error for APIError {}
@@ -55,6 +57,14 @@ impl fmt::Display for APIError {
             }
             Self::Custom(txt) => {
                 write!(f, "API Error: {}", txt)
+            }
+            #[cfg(feature = "experiences")]
+            Self::ExperienceError(txt) => {
+                write!(
+                    f,
+                    "Error executing API Request: Encountered an experience error: {}",
+                    txt
+                )
             }
         }
     }

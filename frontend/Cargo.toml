@@ -22,3 +22,6 @@ web-sys = { version = "0.3.69", features = ["TouchList", "TouchEvent", "Touch", 
 
 [build-dependencies]
 stylers = "1.0.0-alpha"
+
+[features]
+experiences = ["types/experiences"]
