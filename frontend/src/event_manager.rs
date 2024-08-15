@@ -7,7 +7,7 @@ use {
     std::collections::HashMap,
     leptos::*,
     types::{
-        api::{APIResult, AvailablePlugins, CompressedEvent},
+        api::{AvailablePlugins, CompressedEvent},
         timing::TimeRange,
     },
 };
@@ -18,18 +18,51 @@ pub fn EventManager(
     #[prop(into)] current_range: MaybeSignal<TimeRange>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
 ) -> impl IntoView {
-let available_events = create_resource(available_range, |range| async move {
+    let available_events = create_resource(available_range, |range| async move {
         logging::log!("reloading all events");
         api_request::<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _>("/events", &range).await
     });
 
-    let current_events =
+        view! {
+            {move || match available_events() {
+                Some(v) => {
+                    match v {
+                        Ok(v) => {
+                            view! {
+                                <DisplayCurrentEvents
+                                    available_events=v
+                                    current_range=current_range.clone()
+                                    plugin_manager=plugin_manager.clone()
+                                />
+                            }
+                                .into_view()
+                        }
+                        Err(e) => {
+                            view! {
+                                <div class="errorWrapper">
+                                    {move || {
+                                        format!("Error loading events display selector: {}", e)
+                                    }}
+                                </div>
+                            }
+                                .into_view()
+                        }
+                    }
+                }
+                None => view! { <div class="infoWrapper">Loading</div> }.into_view(),
+            }}
+        }
+    }
+
+    #[component]
+    fn DisplayCurrentEvents(
+        #[prop(into)] available_events: MaybeSignal<HashMap<AvailablePlugins, Vec<CompressedEvent>>>,
+        #[prop(into)] current_range: MaybeSignal<TimeRange>,
+        #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+    ) -> impl IntoView{
+        let current_events =
         create_memo(
-            move |_: Option<&APIResult<_>>| match available_events.get() {
-                Some(available_events) => {
-                    let available_events = available_events?;
-                    Ok(Some(
-                        available_events
+            move |_| available_events()
                             .into_iter()
                             .map(|(plugin, events)| {
                                 (
@@ -43,32 +76,8 @@ let available_events = create_resource(available_range, |range| async move {
                                 )
                             })
                             .filter(|(_plugin, data)| !data.is_empty())
-                            .collect::<HashMap<AvailablePlugins, Vec<CompressedEvent>>>(),
-                    ))
-                }
-                None => Ok(None),
-            },
+                            .collect::<HashMap<AvailablePlugins, Vec<CompressedEvent>>>()
         );
 
-        view! {
-            {move || match current_events() {
-                Ok(v) => {
-                    match v {
-                        Some(v) => {
-                            view! { <EventViewer events=v plugin_manager=plugin_manager.clone() /> }
-                                .into_view()
-                        }
-                        None => view! { <div class="infoWrapper">Loading</div> }.into_view(),
-                    }
-                }
-                Err(e) => {
-                    view! {
-                        <div class="errorWrapper">
-                            {move || format!("Error loading app selector: {}", e)}
-                        </div>
-                    }
-                        .into_view()
-                }
-            }}
-        }
+        view! { <EventViewer events=current_events plugin_manager=plugin_manager.clone() /> }
     }
