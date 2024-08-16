@@ -1,5 +1,5 @@
 [package]
-name = "frontend"
+name = "timeline_frontend"
 version = "0.1.0"
 edition = "2021"
 
@@ -25,3 +25,11 @@ stylers = "1.0.0-alpha"
 
 [features]
 experiences = ["types/experiences"]
+
+[lib]
+name = "timeline_frontend_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "timeline_frontend_bin"
+path = "src/main.rs"

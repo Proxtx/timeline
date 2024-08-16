@@ -1,5 +1,5 @@
 use {
-    crate::wasm_bindgen::JsValue,
+    web_sys::wasm_bindgen::JsValue,
     leptos::wasm_bindgen::JsCast,
     reqwest::Client,
     types::api::APIResult,
