@@ -6,7 +6,9 @@ fn main() {
     println!("cargo:rerun-if-changed=../plugins/");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/");
-    build(Some(String::from("./target/generated.css")));
+    let style_path =
+        PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("../../../../generated.css");
+    build(Some(style_path.display().to_string()));
     let mut out_path = PathBuf::from(env::var_os("OUT_DIR").unwrap());
     out_path = out_path.join("out");
     out_path.set_file_name("plugins.rs");

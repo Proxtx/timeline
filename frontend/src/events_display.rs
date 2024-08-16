@@ -13,7 +13,7 @@ use {
 };
 
 #[component]
-pub fn EventViewer(
+pub fn EventsViewer(
     #[prop(into)] events: MaybeSignal<HashMap<AvailablePlugins, Vec<CompressedEvent>>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
 ) -> impl IntoView {
@@ -98,7 +98,7 @@ fn AppSelect(
             width: 100%;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: safe center;
             padding: var(--padding);
             background-color: var(--darkColor);
             box-sizing: border-box;
@@ -171,7 +171,8 @@ fn AppSelect(
                                     let style = plg().get_style(&type_3);
                                     format!("{}", style)
                                 }
-                            ></div>
+                            >
+                            </div>
                         </div>
                     }
                 }
@@ -301,7 +302,7 @@ fn EventContent(
     view! {
         {move || match (expanded(), read_view()) {
             (true, Some(v)) => {
-                view! { <ShowResultEventView style=Signal::derive(style.clone()) view=v /> }
+                view! { <ShowResultEventView style=Signal::derive(style.clone()) view=v/> }
                     .into_view()
             }
             (true, None) => {
