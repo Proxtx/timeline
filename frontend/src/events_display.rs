@@ -9,12 +9,12 @@ use {
         hash::{DefaultHasher, Hash, Hasher},
     },
     stylers::style,
-    types::api::{APIResult, AvailablePlugins, CompressedEvent},
+    types::api::{APIResult, AvailablePlugins, CompressedEvent, EventWrapper},
 };
 
 #[component]
-pub fn EventsViewer(
-    #[prop(into)] events: MaybeSignal<HashMap<AvailablePlugins, Vec<CompressedEvent>>>,
+pub fn EventsViewer<T: EventWrapper>(
+    #[prop(into)] events: MaybeSignal<HashMap<AvailablePlugins, Vec<T>>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
 ) -> impl IntoView {
     let plugin_manager_e = plugin_manager.clone();
@@ -183,9 +183,9 @@ fn AppSelect(
 }
 
 #[component]
-fn EventsDisplay(
+fn EventsDisplay<T: EventWrapper>(
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
-    #[prop(into)] selected_events: MaybeSignal<Vec<CompressedEvent>>,
+    #[prop(into)] selected_events: MaybeSignal<Vec<T>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
 ) -> impl IntoView {
     let css = style! {
@@ -209,7 +209,7 @@ fn EventsDisplay(
                 each=selected_events
                 key=|e| {
                     let mut hasher = DefaultHasher::new();
-                    e.data.hash(&mut hasher);
+                    e.hash(&mut hasher);
                     hasher.finish()
                 }
 
@@ -229,8 +229,8 @@ fn EventsDisplay(
 }
 
 #[component]
-pub fn EventDisplay(
-    #[prop(into)] event: MaybeSignal<CompressedEvent>,
+pub fn EventDisplay<T: EventWrapper>(
+    #[prop(into)] event: MaybeSignal<T>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
     #[prop(default=create_rw_signal(false))] expanded: RwSignal<bool>,
@@ -252,8 +252,9 @@ pub fn EventDisplay(
         }
     };
 
-    let event_2 = event.clone();
-    let event_3 = event.clone();
+    let event_unwrapped = move || event.with(|v| v.get_compressed_event());
+    let event_unwrapped_2 = event_unwrapped.clone();
+    let event_unwrapped_3 = event_unwrapped.clone();
 
     let plugin_manager_2 = plugin_manager.clone();
     let plugin_manager_3 = plugin_manager.clone();
@@ -274,12 +275,12 @@ pub fn EventDisplay(
                 on:click=move |_| expanded.set(!expanded.get())
                 style:color=move || { plugin_manager_3().get_style(&plugin_3()).text().to_string() }
             >
-                <h3>{move || event_2().title}</h3>
-                <a>{move || format!("{}", event_3().time)}</a>
+                <h3>{move || event_unwrapped_2().title}</h3>
+                <a>{move || format!("{}", event_unwrapped_3().time)}</a>
             </button>
             <EventContent
                 plugin_manager=plugin_manager
-                data=Signal::derive(move || { event().data })
+                data=Signal::derive(move || { event_unwrapped().data })
                 plugin=plugin
                 expanded=expanded
             />

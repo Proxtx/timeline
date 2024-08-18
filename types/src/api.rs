@@ -1,6 +1,6 @@
 use {
     serde::{Deserialize, Serialize, Serializer},
-    std::fmt,
+    std::{fmt, hash::Hash},
 };
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
@@ -113,4 +113,23 @@ where
         Ok(v) => v,
         Err(e) => return Err(serde::ser::Error::custom(format!("{}", e))),
     })
+}
+
+#[cfg(feature = "client")]
+pub trait EventWrapper
+where
+    Self: Clone + PartialEq + 'static,
+{
+    fn get_compressed_event(&self) -> CompressedEvent;
+    fn hash(&self, hasher: &mut impl Hasher);
+}
+
+#[cfg(feature = "client")]
+impl EventWrapper for CompressedEvent {
+    fn get_compressed_event(&self) -> CompressedEvent {
+        self.clone()
+    }
+    fn hash(&self, hasher: &mut impl Hasher) {
+        self.data.hash(hasher)
+    }
 }
