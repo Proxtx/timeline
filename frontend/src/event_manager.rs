@@ -2,7 +2,7 @@ use {
     crate::{
         api::api_request,
         plugin_manager::PluginManager,
-        events_display::EventsViewer
+        events_display::{EventsViewer, DefaultEventsViewerType}
     },
     std::collections::HashMap,
     leptos::*,
@@ -80,5 +80,11 @@ pub fn EventManager(
                             .collect::<HashMap<AvailablePlugins, Vec<CompressedEvent>>>()
         );
 
-        view! { <EventsViewer events=current_events plugin_manager=plugin_manager.clone()/> }
+        view! {
+            <EventsViewer<CompressedEvent, DefaultEventsViewerType>
+                events=current_events
+                plugin_manager=plugin_manager.clone()
+                slide_over=None
+            />
+        }
     }

@@ -10,14 +10,14 @@ use {
     chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc}, leptos::*, leptos_router::*, plugin_manager::{Plugin, PluginData}, std::{collections::HashMap, str::FromStr}, stylers::style, types::{
         api::{APIError, APIResult, AvailablePlugins, CompressedEvent},
         timing::TimeRange,
-    }, api::api_request, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}, events_display::EventDisplay
+    }, api::api_request, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}, events_display::{DefaultEventsViewerType, EventDisplay}
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
 fn main() {
     console_error_panic_hook::set_once();
-    mount_to_body(|| view! { <MainView /> })
+    mount_to_body(|| view! { <MainView/> })
 }
 
 #[component]
@@ -25,12 +25,12 @@ fn MainView() -> impl IntoView {
     view! {
         <Router>
             <Routes>
-                <Route path="/timeline/:date" view=Timeline />
-                <Route path="/timeline" view=Timeline />
-                <Route path="/" view=Redirect />
-                <Route path="*not_found" view=NotFound />
-                <Route path="/event/latest/exclude/:exclude" view=LatestEvent />
-                <Route path="/event/latest" view=LatestEvent />
+                <Route path="/timeline/:date" view=Timeline/>
+                <Route path="/timeline" view=Timeline/>
+                <Route path="/" view=Redirect/>
+                <Route path="*not_found" view=NotFound/>
+                <Route path="/event/latest/exclude/:exclude" view=LatestEvent/>
+                <Route path="/event/latest" view=LatestEvent/>
             </Routes>
         </Router>
     }
@@ -40,7 +40,7 @@ fn MainView() -> impl IntoView {
 fn NotFound() -> impl IntoView {
     view! {
         <StyledView>
-            <TitleBar subtitle=Some("404 - Not Found".to_string()) />
+            <TitleBar subtitle=Some("404 - Not Found".to_string())/>
             <div class="errorWrapper">Was unable to find the page you are looking for.</div>
         </StyledView>
     }
@@ -130,12 +130,15 @@ fn LatestEvent() -> impl IntoView {
                                     let color = format!("{}", plugin_manager.get_style(&plugin));
                                     view! { class=style,
                                         <div class="wrapper" style:background-color=color>
-                                            <EventDisplay
-                                                event=event
-                                                plugin_manager
-                                                plugin=plugin
-                                                expanded=create_rw_signal(true)
-                                            />
+
+                                            {
+                                                view! {
+                                                    < EventDisplay < _, DefaultEventsViewerType > event = event
+                                                    plugin_manager plugin = plugin expanded =
+                                                    create_rw_signal(true) slide_over = None />
+                                                }
+                                            }
+
                                         </div>
                                     }
                                         .into_view()
@@ -150,7 +153,7 @@ fn LatestEvent() -> impl IntoView {
                             match e {
                                 APIError::AuthenticationError => {
                                     view! {
-                                        <Login update_authentication=write_last_authentication_attempt />
+                                        <Login update_authentication=write_last_authentication_attempt/>
                                     }
                                         .into_view()
                                 }
@@ -338,7 +341,7 @@ fn Timeline() -> impl IntoView {
                                     match e {
                                         APIError::AuthenticationError => {
                                             view! {
-                                                <Login update_authentication=write_last_authentication_attempt />
+                                                <Login update_authentication=write_last_authentication_attempt/>
                                             }
                                                 .into_view()
                                         }
@@ -383,7 +386,7 @@ fn Timeline() -> impl IntoView {
                 }
                 Err(e) => {
                     view! {
-                        <TitleBar subtitle=Some("Error loading Day".to_string()) />
+                        <TitleBar subtitle=Some("Error loading Day".to_string())/>
 
                         <div class="errorWrapper">
                             {move || format!("Error loading date: {}", e)}
@@ -418,7 +421,7 @@ fn Login(update_authentication: WriteSignal<i64>) -> impl IntoView {
     view! { class=css,
         <div class="errorWrapper">
             <h3>Login</h3>
-            <br />
+            <br/>
             <input
                 class="pwdInput"
                 type="password"

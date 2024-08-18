@@ -12,10 +12,13 @@ use {
     types::api::{APIResult, AvailablePlugins, CompressedEvent, EventWrapper},
 };
 
+pub type DefaultEventsViewerType = fn(CompressedEvent) -> View;
+
 #[component]
 pub fn EventsViewer<T: EventWrapper>(
     #[prop(into)] events: MaybeSignal<HashMap<AvailablePlugins, Vec<T>>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+    #[prop(into, default=None.into())] slide_over: Option<impl Fn(T) -> View + Clone + 'static>,
 ) -> impl IntoView {
     let plugin_manager_e = plugin_manager.clone();
 
@@ -76,6 +79,7 @@ pub fn EventsViewer<T: EventWrapper>(
                             plugin=plugin
                             selected_events=selected_events
                             plugin_manager=plugin_manager_e.clone()
+                            slide_over=slide_over.clone()
                         />
                     }
                 }
@@ -187,6 +191,7 @@ fn EventsDisplay<T: EventWrapper>(
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
     #[prop(into)] selected_events: MaybeSignal<Vec<T>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+    #[prop(into)] slide_over: MaybeSignal<Option<impl Fn(T) -> View + Clone + 'static>>,
 ) -> impl IntoView {
     let css = style! {
         .wrapper {
@@ -218,6 +223,7 @@ fn EventsDisplay<T: EventWrapper>(
                         <EventDisplay
                             event=e
                             plugin_manager=plugin_manager_d.clone()
+                            slide_over=slide_over.clone()
                             plugin=plugin_d.clone()
                         />
                     }
@@ -234,6 +240,7 @@ pub fn EventDisplay<T: EventWrapper>(
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
     #[prop(default=create_rw_signal(false))] expanded: RwSignal<bool>,
+    #[prop(into)] slide_over: MaybeSignal<Option<impl Fn(T) -> View + Clone + 'static>>,
 ) -> impl IntoView {
     let css = style! {
         .wrapper:first-child {
