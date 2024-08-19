@@ -269,6 +269,11 @@ pub fn EventDisplay<T: EventWrapper>(
     let plugin_2 = plugin.clone();
     let plugin_3 = plugin.clone();
 
+    //let 
+
+    window_event_listener(ev::touchmove, |e| {});
+    window_event_listener(ev::touchend, |e| {});
+
     view! { class=css,
         <div
             class="wrapper"
@@ -281,6 +286,7 @@ pub fn EventDisplay<T: EventWrapper>(
                 class="titleWrapper"
                 on:click=move |_| expanded.set(!expanded.get())
                 style:color=move || { plugin_manager_3().get_style(&plugin_3()).text().to_string() }
+                on:touchstart=move |e| {}
             >
                 <h3>{move || event_unwrapped_2().title}</h3>
                 <a>{move || format!("{}", event_unwrapped_3().time)}</a>

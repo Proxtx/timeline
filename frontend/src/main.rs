@@ -133,9 +133,10 @@ fn LatestEvent() -> impl IntoView {
 
                                             {
                                                 view! {
-                                                    < EventDisplay < _, DefaultEventsViewerType > event = event
-                                                    plugin_manager plugin = plugin expanded =
-                                                    create_rw_signal(true) slide_over = None />
+                                                    < EventDisplay < CompressedEvent, DefaultEventsViewerType >
+                                                    event = event plugin_manager = plugin_manager plugin =
+                                                    plugin expanded = create_rw_signal(true) slide_over = None
+                                                    />
                                                 }
                                             }
 
