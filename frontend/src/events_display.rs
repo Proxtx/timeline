@@ -269,7 +269,7 @@ pub fn EventDisplay<T: EventWrapper>(
     let plugin_2 = plugin.clone();
     let plugin_3 = plugin.clone();
 
-    //let 
+    let (touch_start_position, write_touch_start) = create_signal::<Option<(f64, f64)>>(None);
 
     window_event_listener(ev::touchmove, |e| {});
     window_event_listener(ev::touchend, |e| {});
@@ -286,8 +286,9 @@ pub fn EventDisplay<T: EventWrapper>(
                 class="titleWrapper"
                 on:click=move |_| expanded.set(!expanded.get())
                 style:color=move || { plugin_manager_3().get_style(&plugin_3()).text().to_string() }
-                on:touchstart=move |e| {}
+                on:touchstart=move |e| { write_touch_start((e.page_x(), e.page_y())) }
             >
+
                 <h3>{move || event_unwrapped_2().title}</h3>
                 <a>{move || format!("{}", event_unwrapped_3().time)}</a>
             </button>
