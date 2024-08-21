@@ -286,7 +286,9 @@ pub fn EventDisplay<T: EventWrapper>(
                 class="titleWrapper"
                 on:click=move |_| expanded.set(!expanded.get())
                 style:color=move || { plugin_manager_3().get_style(&plugin_3()).text().to_string() }
-                on:touchstart=move |e| { write_touch_start((e.page_x(), e.page_y())) }
+                on:touchstart=move |e| {
+                    write_touch_start(Some((e.page_x() as f64, e.page_y() as f64)))
+                }
             >
 
                 <h3>{move || event_unwrapped_2().title}</h3>
