@@ -1,1 +1,5 @@
 plugins/
+experiences_location.txt
+
+frontend/Cargo.toml
+frontend/Cargo.lock

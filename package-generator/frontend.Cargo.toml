@@ -4,6 +4,19 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[build-dependencies]
+stylers = "1.0.0-alpha"
+
+[features]
+experiences = ["types/experiences", "dep:experiences_navigator"]
+
+[lib]
+name = "timeline_frontend_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "timeline_frontend_bin"
+path = "src/main.rs"
 
 [dependencies]
 chrono = "0.4.35"
@@ -20,17 +33,3 @@ stylers = "1.0.0-alpha"
 types = {path = "../types/", features = ["client"]}
 url = { version = "2.5.0", features = ["serde"] }
 web-sys = { version = "0.3.69", features = ["TouchList", "TouchEvent", "Touch", "HtmlDocument"] }
-
-[build-dependencies]
-stylers = "1.0.0-alpha"
-
-[features]
-experiences = ["types/experiences"]
-
-[lib]
-name = "timeline_frontend_lib"
-path = "src/lib.rs"
-
-[[bin]]
-name = "timeline_frontend_bin"
-path = "src/main.rs"
