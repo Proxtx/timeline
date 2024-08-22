@@ -15,14 +15,14 @@ use {
     types::api::{APIResult, AvailablePlugins, CompressedEvent, EventWrapper},
 };
 
-pub type DefaultEventsViewerType = fn(CompressedEvent, Callback<(), ()>) -> View;
+pub type DefaultEventsViewerType = fn(CompressedEvent, Box<dyn Fn()>) -> View;
 
 #[component]
 pub fn EventsViewer<T: EventWrapper>(
     #[prop(into)] events: MaybeSignal<HashMap<AvailablePlugins, Vec<T>>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into, default=None.into())] slide_over: Option<
-        impl Fn(T, Callback<(), ()>) -> View + Clone + 'static,
+        impl Fn(T, Box<dyn Fn()>) -> View + Clone + 'static,
     >,
 ) -> impl IntoView {
     let plugin_manager_e = plugin_manager.clone();
@@ -197,7 +197,7 @@ fn EventsDisplay<T: EventWrapper>(
     #[prop(into)] selected_events: MaybeSignal<Vec<T>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into)] slide_over: MaybeSignal<
-        Option<impl Fn(T, Callback<(), ()>) -> View + Clone + 'static>,
+        Option<impl Fn(T, Box<dyn Fn()>) -> View + Clone + 'static>,
     >,
 ) -> impl IntoView {
     let css = style! {
@@ -248,11 +248,11 @@ pub fn EventDisplay<T: EventWrapper>(
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
     #[prop(default=create_rw_signal(false))] expanded: RwSignal<bool>,
     #[prop(into)] slide_over: MaybeSignal<
-        Option<impl Fn(T, Callback<(), ()>) -> View + Clone + 'static>,
+        Option<impl Fn(T, Box<dyn Fn()>) -> View + Clone + 'static>,
     >,
 ) -> impl IntoView {
     let css = style! {
-        .wrapper:first-child {
+        .slideOverOuterWrapper:first-child {
             border-top: none !important;
         }
         .titleWrapper {
@@ -377,15 +377,15 @@ pub fn EventDisplay<T: EventWrapper>(
     let (slide_over_loaded, write_slide_over_loaded) = create_signal::<Option<View>>(None);
 
     view! { class=css,
-        <div class="slideOverOuterWrapper" ref=wrapper_ref>
-            <div
-                class="wrapper"
-                style:border-top=move || {
-                    format!("1px solid {}", plugin_manager_2().get_style(&plugin_2()).light())
-                }
+        <div
+            class="slideOverOuterWrapper"
+            ref=wrapper_ref
+            style:border-top=move || {
+                format!("1px solid {}", plugin_manager_2().get_style(&plugin_2()).light())
+            }
+        >
 
-                style:transform=slide_transform
-            >
+            <div class="wrapper" style:transform=slide_transform>
 
                 <button
                     class="titleWrapper"
@@ -428,7 +428,7 @@ pub fn EventDisplay<T: EventWrapper>(
                                 let v = slide_over_2()
                                     .unwrap()(
                                     event_2(),
-                                    Callback::new(move |_| {
+                                    Box::new(move || {
                                         write_currently_visible(CurrentlyVisible::Main);
                                     }),
                                 );
