@@ -3,7 +3,10 @@ use {
         api::relative_url,
         plugin_manager::{EventResult, IconLocation, PluginManager, Style},
     },
+    ev::TouchEvent,
     leptos::*,
+    leptos_use::*,
+    serde::Serialize,
     std::{
         collections::HashMap,
         hash::{DefaultHasher, Hash, Hasher},
@@ -12,13 +15,15 @@ use {
     types::api::{APIResult, AvailablePlugins, CompressedEvent, EventWrapper},
 };
 
-pub type DefaultEventsViewerType = fn(CompressedEvent) -> View;
+pub type DefaultEventsViewerType = fn(CompressedEvent, Callback<(), ()>) -> View;
 
 #[component]
 pub fn EventsViewer<T: EventWrapper>(
     #[prop(into)] events: MaybeSignal<HashMap<AvailablePlugins, Vec<T>>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
-    #[prop(into, default=None.into())] slide_over: Option<impl Fn(T) -> View + Clone + 'static>,
+    #[prop(into, default=None.into())] slide_over: Option<
+        impl Fn(T, Callback<(), ()>) -> View + Clone + 'static,
+    >,
 ) -> impl IntoView {
     let plugin_manager_e = plugin_manager.clone();
 
@@ -191,7 +196,9 @@ fn EventsDisplay<T: EventWrapper>(
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
     #[prop(into)] selected_events: MaybeSignal<Vec<T>>,
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
-    #[prop(into)] slide_over: MaybeSignal<Option<impl Fn(T) -> View + Clone + 'static>>,
+    #[prop(into)] slide_over: MaybeSignal<
+        Option<impl Fn(T, Callback<(), ()>) -> View + Clone + 'static>,
+    >,
 ) -> impl IntoView {
     let css = style! {
         .wrapper {
@@ -240,7 +247,9 @@ pub fn EventDisplay<T: EventWrapper>(
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
     #[prop(default=create_rw_signal(false))] expanded: RwSignal<bool>,
-    #[prop(into)] slide_over: MaybeSignal<Option<impl Fn(T) -> View + Clone + 'static>>,
+    #[prop(into)] slide_over: MaybeSignal<
+        Option<impl Fn(T, Callback<(), ()>) -> View + Clone + 'static>,
+    >,
 ) -> impl IntoView {
     let css = style! {
         .wrapper:first-child {
@@ -257,7 +266,25 @@ pub fn EventDisplay<T: EventWrapper>(
             font-size: unset;
             width: 100%;
         }
+
+        .slideOverOuterWrapper {
+            display: flex;
+            flex-direction: row;
+            position: relative;
+            width: 100%;
+            overflow-x: hidden;
+        }
+        .slideOverOuterWrapper > * {
+            flex: 0 0 100%;
+        }
+        .slideOverWrapper {
+            width: 100%;
+        }
     };
+
+    let wrapper_ref = create_node_ref();
+
+    let event_2 = event.clone();
 
     let event_unwrapped = move || event.with(|v| v.get_compressed_event());
     let event_unwrapped_2 = event_unwrapped.clone();
@@ -269,37 +296,153 @@ pub fn EventDisplay<T: EventWrapper>(
     let plugin_2 = plugin.clone();
     let plugin_3 = plugin.clone();
 
-    let (touch_start_position, write_touch_start) = create_signal::<Option<(f64, f64)>>(None);
+    let slide_over_2 = slide_over.clone();
 
-    window_event_listener(ev::touchmove, |e| {});
-    window_event_listener(ev::touchend, |e| {});
+    let (drag_start_position, write_drag_start_position) =
+        create_signal::<Option<(f64, f64)>>(None);
+    let (latest_drag_position, write_latest_drag_position) =
+        create_signal::<Option<(f64, f64)>>(None);
+
+    let _ = use_event_listener(window(), ev::touchmove, move |e| {
+        let pos;
+        {
+            let touch = e.touches().get(0).unwrap();
+            pos = (touch.page_x() as f64, touch.page_y() as f64);
+        }
+        write_latest_drag_position(Some(pos));
+    });
+
+    #[derive(Debug, Serialize, Clone)]
+    enum CurrentlyVisible {
+        Main,
+        SlideOver,
+    }
+
+    let (currently_visible, write_currently_visible) = create_signal(CurrentlyVisible::Main);
+
+    let (wrapper_width, write_wrapper_width) = create_signal(0.0);
+    use_resize_observer(wrapper_ref, move |entries, _| {
+        let rect = entries[0].content_rect();
+        write_wrapper_width(rect.width());
+    });
+
+    let drag_movement = move || match (drag_start_position(), latest_drag_position()) {
+        (Some(start), Some(end)) => Some((end.0 - start.0, end.1 - start.1)),
+        _ => None,
+    };
+
+    let drag_initiated = move || drag_movement().map(|v| v.0 <= -10.0);
+
+    let slide_over_visible = move || {
+        matches!(
+            (drag_initiated(), currently_visible()),
+            (Some(true), _) | (_, CurrentlyVisible::SlideOver)
+        )
+    };
+
+    let slide_transform = move || {
+        let default = match currently_visible() {
+            CurrentlyVisible::Main => "translate(0px)".to_string(),
+            CurrentlyVisible::SlideOver => {
+                format!("translate(-{}px)", wrapper_width())
+            }
+        };
+
+        match (drag_initiated(), drag_movement()) {
+            (Some(vis), Some(movement)) => {
+                if vis {
+                    format!("translateX({}px)", movement.0.max(wrapper_width() * -1.0))
+                } else {
+                    default
+                }
+            }
+            _ => default,
+        }
+    };
+
+    let resolve_drag = move || {
+        if let Some(t) = drag_movement()
+            && t.0.abs() > wrapper_width() / 3.0
+        {
+            write_currently_visible(CurrentlyVisible::SlideOver);
+        }
+        write_drag_start_position.set(None);
+        write_latest_drag_position.set(None);
+    };
+
+    let _ = use_event_listener(window(), ev::touchend, move |_e| {
+        resolve_drag();
+    });
+
+    let (slide_over_loaded, write_slide_over_loaded) = create_signal::<Option<View>>(None);
 
     view! { class=css,
-        <div
-            class="wrapper"
-            style:border-top=move || {
-                format!("1px solid {}", plugin_manager_2().get_style(&plugin_2()).light())
-            }
-        >
-
-            <button
-                class="titleWrapper"
-                on:click=move |_| expanded.set(!expanded.get())
-                style:color=move || { plugin_manager_3().get_style(&plugin_3()).text().to_string() }
-                on:touchstart=move |e| {
-                    write_touch_start(Some((e.page_x() as f64, e.page_y() as f64)))
+        <div class="slideOverOuterWrapper" ref=wrapper_ref>
+            <div
+                class="wrapper"
+                style:border-top=move || {
+                    format!("1px solid {}", plugin_manager_2().get_style(&plugin_2()).light())
                 }
+
+                style:transform=slide_transform
             >
 
-                <h3>{move || event_unwrapped_2().title}</h3>
-                <a>{move || format!("{}", event_unwrapped_3().time)}</a>
-            </button>
-            <EventContent
-                plugin_manager=plugin_manager
-                data=Signal::derive(move || { event_unwrapped().data })
-                plugin=plugin
-                expanded=expanded
-            />
+                <button
+                    class="titleWrapper"
+                    on:click=move |_| expanded.set(!expanded.get())
+                    style:color=move || {
+                        plugin_manager_3().get_style(&plugin_3()).text().to_string()
+                    }
+
+                    on:touchstart=move |e| {
+                        slide_over
+                            .with(|v| {
+                                if v.is_some() {
+                                    let pos;
+                                    {
+                                        let touch = e.touches().get(0).unwrap();
+                                        pos = (touch.page_x() as f64, touch.page_y() as f64);
+                                    }
+                                    write_drag_start_position(Some(pos))
+                                }
+                            });
+                    }
+                >
+
+                    <h3>{move || event_unwrapped_2().title}</h3>
+                    <a>{move || format!("{}", event_unwrapped_3().time)}</a>
+                </button>
+                <EventContent
+                    plugin_manager=plugin_manager
+                    data=Signal::derive(move || { event_unwrapped().data })
+                    plugin=plugin
+                    expanded=expanded
+                />
+            </div>
+            <div class="slideOverWrapper" style:transform=slide_transform>
+
+                {move || {
+                    if slide_over_visible() {
+                        match slide_over_loaded() {
+                            None => {
+                                let v = slide_over_2()
+                                    .unwrap()(
+                                    event_2(),
+                                    Callback::new(move |_| {
+                                        write_currently_visible(CurrentlyVisible::Main);
+                                    }),
+                                );
+                                write_slide_over_loaded(Some(v.clone()));
+                                v
+                            }
+                            Some(v) => v,
+                        }
+                    } else {
+                        view! { <div class="infoBox">Loading</div> }.into_view()
+                    }
+                }}
+
+            </div>
         </div>
     }
 }

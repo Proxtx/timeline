@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 pub mod api;
 mod error;
 pub mod events_display;

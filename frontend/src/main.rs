@@ -1,3 +1,5 @@
+#![feature(let_chains)]
+
 mod api;
 mod event_manager;
 mod plugin_manager;
