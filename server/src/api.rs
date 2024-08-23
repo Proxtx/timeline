@@ -3,10 +3,11 @@ use {
     rocket::{
         http::{CookieJar, Status},
         post,
-        response::status,
+        response::{status, Redirect},
         serde::json::Json,
         State,
     },
+    std::path::PathBuf,
     types::api::{APIError, APIResult},
 };
 

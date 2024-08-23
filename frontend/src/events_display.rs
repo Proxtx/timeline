@@ -374,7 +374,7 @@ pub fn EventDisplay<T: EventWrapper>(
         resolve_drag();
     });
 
-    let (slide_over_loaded, write_slide_over_loaded) = create_signal::<Option<View>>(None);
+    let slide_over_visible_memo = create_memo(move |_| slide_over_visible());
 
     view! { class=css,
         <div
@@ -419,24 +419,21 @@ pub fn EventDisplay<T: EventWrapper>(
                     expanded=expanded
                 />
             </div>
-            <div class="slideOverWrapper" style:transform=slide_transform>
+            <div
+                class="slideOverWrapper"
+                style:transform=slide_transform
+                style:display=move || if slide_over_visible() { "block" } else { "none" }
+            >
 
                 {move || {
-                    if slide_over_visible() {
-                        match slide_over_loaded() {
-                            None => {
-                                let v = slide_over_2()
-                                    .unwrap()(
-                                    event_2(),
-                                    Box::new(move || {
-                                        write_currently_visible(CurrentlyVisible::Main);
-                                    }),
-                                );
-                                write_slide_over_loaded(Some(v.clone()));
-                                v
-                            }
-                            Some(v) => v,
-                        }
+                    if slide_over_visible_memo() {
+                        slide_over_2()
+                            .unwrap()(
+                            event_2(),
+                            Box::new(move || {
+                                write_currently_visible(CurrentlyVisible::Main);
+                            }),
+                        )
                     } else {
                         view! { <div class="infoBox">Loading</div> }.into_view()
                     }

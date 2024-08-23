@@ -4,6 +4,7 @@ use {
         plugin_manager::PluginManager,
         events_display::{EventsViewer, DefaultEventsViewerType}
     },
+    experiences_navigator_lib::navigator::StandaloneNavigator,
     std::collections::HashMap,
     leptos::*,
     types::{
@@ -80,11 +81,15 @@ pub fn EventManager(
                             .collect::<HashMap<AvailablePlugins, Vec<CompressedEvent>>>()
         );
 
+        let slide_over: DefaultEventsViewerType = |event, close_callback| {
+                    view! { <StandaloneNavigator/> }.into_view()
+                }; 
+
         view! {
             <EventsViewer<CompressedEvent, DefaultEventsViewerType>
                 events=current_events
                 plugin_manager=plugin_manager.clone()
-                slide_over=None
+                slide_over=Some(slide_over)
             />
         }
     }
