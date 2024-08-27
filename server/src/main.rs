@@ -101,9 +101,16 @@ async fn rocket() -> _ {
                 api::markers::get_markers_request,
                 api::events::get_events,
                 api::events::get_icon,
-                api::auth_request
+                api::auth_request,
             ],
         );
+    
+    #[cfg(feature="experiences")]
+    {
+        rocket_state = rocket_state.mount("/api", routes![
+            api::experiences_url
+        ]);
+    }
 
     for (plugin, routes) in plugins.routes {
         rocket_state = rocket_state.mount(format!("/api/plugin/{}", plugin), routes);

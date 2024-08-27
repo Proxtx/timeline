@@ -166,6 +166,12 @@ pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
     }
 }
 
+#[cfg(feature="experiences")]
+#[post("/experiences_url")]
+pub fn experiences_url(config: &State<Config>) -> status::Accepted<Json<APIResult<String>>> {
+    status::Accepted(Json(Ok(config.experiences_url.to_string())))
+}
+
 #[post("/auth")]
 pub fn auth_request(
     config: &State<Config>,

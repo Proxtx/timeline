@@ -136,3 +136,6 @@ impl EventWrapper for CompressedEvent {
         self.data.hash(hasher)
     }
 }
+
+#[derive(Deserialize, Serialize, Clone)]
+pub struct TimelineHostname(pub String);

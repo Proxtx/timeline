@@ -14,7 +14,7 @@ pub struct Config {
     pub plugin_config: HashMap<crate::AvailablePlugins, toml::Value>,
     pub error_report_url: Option<Url>,
     #[cfg(feature="experiences")]
-    pub navigator_url: Url
+    pub experiences_url: Url
 }
 
 impl Config {

@@ -9,10 +9,10 @@ mod error;
 mod events_display;
 
 use {
-    chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc}, leptos::*, leptos_router::*, plugin_manager::{Plugin, PluginData}, std::{collections::HashMap, str::FromStr}, stylers::style, types::{
-        api::{APIError, APIResult, AvailablePlugins, CompressedEvent},
+    api::api_request, chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc}, events_display::{DefaultEventsViewerType, EventDisplay}, leptos::*, leptos_router::*, plugin_manager::{Plugin, PluginData}, std::{collections::HashMap, str::FromStr}, stylers::style, types::{
+        api::{APIError, APIResult, AvailablePlugins, CompressedEvent, TimelineHostname},
         timing::TimeRange,
-    }, api::api_request, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}, events_display::{DefaultEventsViewerType, EventDisplay}
+    }, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
@@ -24,6 +24,8 @@ fn main() {
 
 #[component]
 fn MainView() -> impl IntoView {
+    provide_context(TimelineHostname(leptos::window().origin()));
+    
     view! {
         <Router>
             <Routes>
