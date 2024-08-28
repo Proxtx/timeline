@@ -16,6 +16,8 @@ use {
 };
 
 pub type DefaultEventsViewerType = fn(CompressedEvent, Box<dyn Fn()>) -> View;
+pub type DefaultWithAvailablePluginsEventsViewerType =
+    fn((AvailablePlugins, CompressedEvent), Box<dyn Fn()>) -> View;
 
 #[component]
 pub fn EventsViewer<T: EventWrapper>(

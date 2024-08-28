@@ -137,5 +137,15 @@ impl EventWrapper for CompressedEvent {
     }
 }
 
+#[cfg(feature = "client")]
+impl EventWrapper for (AvailablePlugins, CompressedEvent) {
+    fn get_compressed_event(&self) -> CompressedEvent {
+        self.1.clone()
+    }
+    fn hash(&self, hasher: &mut impl Hasher) {
+        self.1.data.hash(hasher)
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone)]
 pub struct TimelineHostname(pub String);

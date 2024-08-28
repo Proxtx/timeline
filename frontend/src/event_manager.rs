@@ -1,7 +1,7 @@
 use {
     crate::{
-        api::api_request, events_display::{DefaultEventsViewerType, EventsViewer}, plugin_manager::PluginManager
-    }, experiences_navigator_lib::experiences_types::types::ExperiencesHostname, leptos::*, std::collections::HashMap, timeline_frontend_lib::plugin_manager, types::{
+        api::api_request, events_display::{DefaultEventsViewerType, EventsViewer}, plugin_manager::PluginManager, APIResult, StyledView
+    }, experiences_navigator_lib::experiences_types::types::ExperiencesHostname, leptos::*, std::{collections::HashMap, sync::Arc}, timeline_frontend_lib::{events_display::DefaultWithAvailablePluginsEventsViewerType, plugin_manager}, types::{
         api::{AvailablePlugins, CompressedEvent},
         timing::TimeRange,
     }
@@ -9,7 +9,7 @@ use {
 
 #[cfg(feature="experiences")]
 use {
-    experiences_navigator_lib::navigator::StandaloneNavigator,
+    experiences_navigator_lib::{navigator::StandaloneNavigator, wrappers::Band},
 };
 
 #[component]
@@ -116,30 +116,67 @@ pub fn EventManager(
                             .into_iter()
                             .map(|(plugin, events)| {
                                 (
-                                    plugin,
+                                    plugin.clone(),
                                     events
                                         .into_iter()
                                         .filter(|current_event| {
                                             current_range().overlap_timing(&current_event.time)
-                                        })
-                                        .collect::<Vec<CompressedEvent>>(),
+                                        }).map(|v| (plugin.clone(), v))
+                                        .collect::<Vec<(AvailablePlugins, CompressedEvent)>>(),
                                 )
                             })
                             .filter(|(_plugin, data)| !data.is_empty())
-                            .collect::<HashMap<AvailablePlugins, Vec<CompressedEvent>>>()
+                            .collect::<HashMap<AvailablePlugins, Vec<(AvailablePlugins, CompressedEvent)>>>()
         );
 
-        let mut slide_over: Option<DefaultEventsViewerType> = None;
+        let mut slide_over: Option<DefaultWithAvailablePluginsEventsViewerType> = None;
 
         #[cfg(feature="experiences")]
         {
             slide_over  = Some(|event, close_callback| {
-                view! { <StandaloneNavigator/> }.into_view()
+                let selected_experience = create_rw_signal(None);
+                let close_callback = Arc::new(close_callback);
+
+                view! {
+                    <StyledView>
+                        <StandaloneNavigator selected_experience=selected_experience/>
+                        <Band click=Callback::new(move |_| {
+                            spawn_local({
+                                let close_callback = close_callback.clone();
+                                let selected_experience = selected_experience();
+                                let event = event.clone();
+                                async move {
+                                    close_callback();
+                                    if let Err(e) = experiences_navigator_lib::api::api_request::<
+                                        APIResult<String>,
+                                        _,
+                                    >(
+                                            &format!(
+                                                "/experience/{}/append_event",
+                                                selected_experience.unwrap(),
+                                            ),
+                                            &event,
+                                        )
+                                        .await
+                                    {
+                                        window()
+                                            .alert_with_message(
+                                                &format!("Unable to append event to experience: {}", e),
+                                            )
+                                            .unwrap();
+                                    }
+                                }
+                            })
+                        })>Insert</Band>
+                    </StyledView>
+                }.into_view()
             }); 
         }
 
+        type AVCTuple = (AvailablePlugins, CompressedEvent);
+
         view! {
-            <EventsViewer<CompressedEvent, DefaultEventsViewerType>
+            <EventsViewer<AVCTuple, DefaultWithAvailablePluginsEventsViewerType>
                 events=current_events
                 plugin_manager=plugin_manager.clone()
                 slide_over=slide_over
