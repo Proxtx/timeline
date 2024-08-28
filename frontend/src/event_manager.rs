@@ -136,9 +136,15 @@ pub fn EventManager(
             slide_over  = Some(|event, close_callback| {
                 let selected_experience = create_rw_signal(None);
                 let close_callback = Arc::new(close_callback);
+                let close_callback_2 = close_callback.clone();
 
                 view! {
                     <StyledView>
+                        <Band click=Callback::new(move |_| {
+                            close_callback_2();
+                        })>
+                            <b>Close</b>
+                        </Band>
                         <StandaloneNavigator selected_experience=selected_experience/>
                         <Band click=Callback::new(move |_| {
                             spawn_local({
@@ -167,7 +173,9 @@ pub fn EventManager(
                                     }
                                 }
                             })
-                        })>Insert</Band>
+                        })>
+                            <b>Insert</b>
+                        </Band>
                     </StyledView>
                 }.into_view()
             }); 
