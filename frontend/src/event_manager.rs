@@ -148,7 +148,7 @@ pub fn EventManager(
                                 async move {
                                     close_callback();
                                     if let Err(e) = experiences_navigator_lib::api::api_request::<
-                                        APIResult<String>,
+                                        String,
                                         _,
                                     >(
                                             &format!(
