@@ -12,7 +12,7 @@ use {
     api::api_request, chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc}, events_display::{DefaultEventsViewerType, EventDisplay}, leptos::*, leptos_router::*, plugin_manager::{Plugin, PluginData}, std::{collections::HashMap, str::FromStr}, stylers::style, types::{
         api::{APIError, APIResult, AvailablePlugins, CompressedEvent, TimelineHostname},
         timing::TimeRange,
-    }, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar}
+    }, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar, Login}
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
@@ -403,47 +403,4 @@ fn Timeline() -> impl IntoView {
 
         </StyledView>
     }
-}
-
-#[component]
-fn Login(update_authentication: WriteSignal<i64>) -> impl IntoView {
-    let css = style! {
-        .pwdInput {
-            border: none;
-            width: 100%;
-            box-sizing: border-box;
-            background-color: var(--accentColor2);
-            padding: var(--contentSpacing);
-            color: var(--lightColor);
-        }
-        .pwdInput::placeholder{
-            color: var(--lightColor);
-        }
-        .pwdInput:focus{
-            outline: none;
-        }
-    };
-    view! { class=css,
-        <div class="errorWrapper">
-            <h3>Login</h3>
-            <br/>
-            <input
-                class="pwdInput"
-                type="password"
-                placeholder="Password"
-                on:change=move |e| {
-                    set_password_cookie(event_target_value(&e));
-                    update_authentication(Utc::now().timestamp_millis());
-                }
-            />
-
-        </div>
-    }
-}
-
-fn set_password_cookie(password: String) {
-    let html_doc: web_sys::HtmlDocument = document().dyn_into().unwrap();
-    let mut cookie = cookie::Cookie::new("pwd", password);
-    cookie.set_path("/");
-    html_doc.set_cookie(&format!("{}; expires=Fri, 31 Dec 9999 23:59:59 GMT; SameSite=None; Secure", cookie)).unwrap();
 }

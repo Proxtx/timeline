@@ -1,8 +1,4 @@
-use {
-    leptos::*,
-    stylers::style,
-    web_sys::MouseEvent,
-};
+use {chrono::Utc, leptos::wasm_bindgen::JsCast, leptos::*, stylers::style, web_sys::MouseEvent};
 
 #[component]
 pub fn TitleBar(
@@ -86,4 +82,52 @@ pub fn StyledView(children: Children) -> impl IntoView {
         }
     };
     view! { class=stylers_class, <div class="view">{children()}</div> }
+}
+
+#[component]
+pub fn Login(update_authentication: WriteSignal<i64>) -> impl IntoView {
+    let css = style! {
+        .pwdInput {
+            border: none;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: var(--accentColor2);
+            padding: var(--contentSpacing);
+            color: var(--lightColor);
+        }
+        .pwdInput::placeholder{
+            color: var(--lightColor);
+        }
+        .pwdInput:focus{
+            outline: none;
+        }
+    };
+    view! { class=css,
+        <div class="errorWrapper">
+            <h3>Login</h3>
+            <br/>
+            <input
+                class="pwdInput"
+                type="password"
+                placeholder="Password"
+                on:change=move |e| {
+                    set_password_cookie(event_target_value(&e));
+                    update_authentication(Utc::now().timestamp_millis());
+                }
+            />
+
+        </div>
+    }
+}
+
+fn set_password_cookie(password: String) {
+    let html_doc: web_sys::HtmlDocument = document().dyn_into().unwrap();
+    let mut cookie = cookie::Cookie::new("pwd", password);
+    cookie.set_path("/");
+    html_doc
+        .set_cookie(&format!(
+            "{}; expires=Fri, 31 Dec 9999 23:59:59 GMT; SameSite=None; Secure",
+            cookie
+        ))
+        .unwrap();
 }

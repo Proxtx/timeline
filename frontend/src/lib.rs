@@ -4,6 +4,7 @@ pub mod api;
 mod error;
 pub mod events_display;
 pub mod plugin_manager;
+pub mod wrappers;
 
 use plugin_manager::Plugin;
 use plugin_manager::PluginData;
