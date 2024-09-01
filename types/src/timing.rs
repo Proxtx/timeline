@@ -1,6 +1,7 @@
 use {
-    chrono::DateTime, chrono::Local, chrono::Timelike, chrono::Utc, serde::de::Visitor,
-    serde::Deserialize, serde::Serialize, std::cmp::Ordering, std::fmt,
+    chrono::{DateTime, Local, Timelike, Utc},
+    serde::{de::Visitor, Deserialize, Serialize},
+    std::{cmp::Ordering, fmt},
 };
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]

@@ -7,7 +7,7 @@ edition = "2021"
 
 
 [features]
-experiences = ["types/experiences"]
+experiences = ["types/experiences", "dep:experiences_types"]
 
 [dependencies]
 base64 = "0.22.0"

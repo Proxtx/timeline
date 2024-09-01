@@ -1,13 +1,9 @@
 use {
     crate::{AvailablePlugins, Plugin},
-    chrono::Duration,
     futures::{FutureExt, StreamExt},
     std::{collections::HashMap, pin::Pin, sync::Arc},
     tokio::sync::RwLock,
-    types::{
-        api::{APIResult, CompressedEvent},
-        timing::TimeRange,
-    },
+    types::{api::APIResult, timing::TimeRange},
 };
 
 type ThreadedPlugin = Arc<RwLock<Box<dyn Plugin>>>;

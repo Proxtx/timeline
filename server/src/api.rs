@@ -3,11 +3,10 @@ use {
     rocket::{
         http::{CookieJar, Status},
         post,
-        response::{status, Redirect},
+        response::status,
         serde::json::Json,
         State,
     },
-    std::path::PathBuf,
     types::api::{APIError, APIResult},
 };
 
@@ -78,12 +77,7 @@ pub mod markers {
             .collect();
 
         res.sort_by(|a, b| b.amount.cmp(&a.amount));
-        res = res
-            .into_iter()
-            .enumerate()
-            //.filter(|(index, _elem)| index < &5)
-            .map(|(_index, elem)| elem)
-            .collect();
+        res = res.into_iter().collect();
 
         Ok(res)
     }
@@ -105,13 +99,8 @@ pub mod markers {
 pub mod events {
     use {
         super::auth,
-        crate::{
-            config::Config,
-            db::Database,
-            plugin_manager::{self, PluginManager},
-        },
-        futures::{io::Cursor, StreamExt},
-        mongodb::{bson::doc, options::FindOptions},
+        crate::{config::Config, plugin_manager::PluginManager},
+        mongodb::bson::doc,
         rocket::{
             fs::NamedFile,
             get,
@@ -166,7 +155,7 @@ pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
     }
 }
 
-#[cfg(feature="experiences")]
+#[cfg(feature = "experiences")]
 #[post("/experiences_url")]
 pub fn experiences_url(config: &State<Config>) -> status::Accepted<Json<APIResult<String>>> {
     status::Accepted(Json(Ok(config.experiences_url.to_string())))

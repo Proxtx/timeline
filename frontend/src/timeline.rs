@@ -51,10 +51,11 @@ pub fn Timeline(
     let pointer_ref: NodeRef<html::Img> = create_node_ref();
 
     let handle_pointer_event = move |pageX: i32, range: &TimeRange| {
-        let pos_percent = pageX as f64
-            / leptos::window().inner_width().unwrap().as_f64().unwrap()
-            * 100.;
-        let _ = pointer_ref().unwrap().style("left", format!("{}%", pos_percent));
+        let pos_percent =
+            pageX as f64 / leptos::window().inner_width().unwrap().as_f64().unwrap() * 100.;
+        let _ = pointer_ref()
+            .unwrap()
+            .style("left", format!("{}%", pos_percent));
 
         let start_time_millis = map_range(
             (0., 100.),
@@ -67,7 +68,12 @@ pub fn Timeline(
 
         let mut start_time: DateTime<Utc> =
             DateTime::from_timestamp_millis(start_time_millis as i64).unwrap();
-        start_time = start_time.round_subsecs(0).with_second(0).unwrap().with_minute(0).unwrap();
+        start_time = start_time
+            .round_subsecs(0)
+            .with_second(0)
+            .unwrap()
+            .with_minute(0)
+            .unwrap();
         let end_time = start_time
             .checked_add_signed(TimeDelta::try_hours(1).unwrap())
             .unwrap();
@@ -89,7 +95,6 @@ pub fn Timeline(
     let range_2 = range.clone();
     let range_3 = range.clone();
     let range_4 = range.clone();
-
 
     view! { class=style,
         <div

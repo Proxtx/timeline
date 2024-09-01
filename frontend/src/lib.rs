@@ -6,9 +6,10 @@ pub mod events_display;
 pub mod plugin_manager;
 pub mod wrappers;
 
-use plugin_manager::Plugin;
-use plugin_manager::PluginData;
-use std::collections::HashMap;
-use types::api::AvailablePlugins;
+use {
+    plugin_manager::{Plugin, PluginData},
+    std::collections::HashMap,
+    types::api::AvailablePlugins,
+};
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));

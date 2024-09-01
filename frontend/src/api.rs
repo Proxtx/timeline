@@ -1,12 +1,15 @@
 use {
-    crate::plugin_manager::PluginManager, leptos::{use_context, wasm_bindgen::JsCast}, reqwest::Client, types::api::{APIResult, TimelineHostname}, url::{ParseError, Url}, web_sys::{js_sys::Function, wasm_bindgen::JsValue}
+    leptos::{use_context, wasm_bindgen::JsCast},
+    reqwest::Client,
+    types::api::{APIResult, TimelineHostname},
+    url::{ParseError, Url},
+    web_sys::{js_sys::Function, wasm_bindgen::JsValue},
 };
 pub async fn api_request<T, V>(endpoint: &str, request: &V) -> APIResult<T>
 where
     T: serde::de::DeserializeOwned,
     V: serde::Serialize,
 {
-    let ev: Option<PluginManager> = use_context();
     let client = Client::new();
     let url = relative_url(&format!("/api{}", endpoint)).unwrap();
     serde_json::from_str::<APIResult<T>>(

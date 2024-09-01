@@ -1,11 +1,14 @@
 use {
-    crate::{api::relative_url, plugin_manager}, leptos::{view, IntoView, View}, serde::{Deserialize, Serialize}, types::api::AvailablePlugins
+    crate::{api::relative_url, plugin_manager},
+    leptos::{view, IntoView, View},
+    serde::{Deserialize, Serialize},
+    types::api::AvailablePlugins,
 };
 
 #[derive(Serialize, Deserialize)]
 struct Error {
-    plugin: Option<AvailablePlugins>, 
-    error: String
+    plugin: Option<AvailablePlugins>,
+    error: String,
 }
 
 pub struct Plugin {}
@@ -15,12 +18,16 @@ impl plugin_manager::Plugin for Plugin {
         plugin_manager::Style::Light
     }
     async fn new(_data: plugin_manager::PluginData) -> Self
-        where
-            Self: Sized {
+    where
+        Self: Sized,
+    {
         Plugin {}
     }
 
-    fn get_component(&self, data: plugin_manager::PluginEventData) -> crate::plugin_manager::EventResult<Box<dyn FnOnce() -> leptos::View>> {
+    fn get_component(
+        &self,
+        data: plugin_manager::PluginEventData,
+    ) -> crate::plugin_manager::EventResult<Box<dyn FnOnce() -> leptos::View>> {
         let data = data.get_data::<Error>()?;
         Ok(Box::new(move || -> View {
             view! {
@@ -33,7 +40,8 @@ impl plugin_manager::Plugin for Plugin {
 
                 </h3>
                 <a>{move || { data.error.clone() }}</a>
-            }.into_view()
+            }
+            .into_view()
         }))
     }
 

@@ -1,18 +1,27 @@
 #![feature(let_chains)]
 
 mod api;
+mod error;
 mod event_manager;
+mod events_display;
 mod plugin_manager;
 mod timeline;
 mod wrappers;
-mod error;
-mod events_display;
 
 use {
-    api::api_request, chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc}, events_display::{DefaultEventsViewerType, EventDisplay}, leptos::*, leptos_router::*, plugin_manager::{Plugin, PluginData}, std::{collections::HashMap, str::FromStr}, stylers::style, types::{
+    api::api_request,
+    chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
+    events_display::{DefaultEventsViewerType, EventDisplay},
+    leptos::*,
+    leptos_router::*,
+    plugin_manager::{Plugin, PluginData},
+    std::{collections::HashMap, str::FromStr},
+    stylers::style,
+    types::{
         api::{APIError, APIResult, AvailablePlugins, CompressedEvent, TimelineHostname},
         timing::TimeRange,
-    }, web_sys::wasm_bindgen::JsCast, wrappers::{StyledView, TitleBar, Login}
+    },
+    wrappers::{Login, StyledView, TitleBar},
 };
 
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
@@ -25,7 +34,7 @@ fn main() {
 #[component]
 fn MainView() -> impl IntoView {
     provide_context(TimelineHostname(leptos::window().origin()));
-    
+
     view! {
         <Router>
             <Routes>
@@ -58,7 +67,7 @@ fn Redirect() -> impl IntoView {
 
 #[derive(Params, PartialEq, Clone)]
 struct LatestParams {
-    exclude: Option<String>
+    exclude: Option<String>,
 }
 
 #[component]
@@ -73,54 +82,59 @@ fn LatestEvent() -> impl IntoView {
 
     let (range, _write_range) = create_signal(TimeRange {
         end: Utc::now(),
-        start: Utc::now().checked_sub_signed(chrono::TimeDelta::try_hours(1).unwrap()).unwrap()
+        start: Utc::now()
+            .checked_sub_signed(chrono::TimeDelta::try_hours(1).unwrap())
+            .unwrap(),
     });
     let (last_authentication_attempt, write_last_authentication_attempt) =
         create_signal(Utc::now().timestamp_millis());
-    let events = create_resource(move || (range(), last_authentication_attempt()), |(range, _)| async move  {
-        api_request::<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _>("/events", &range).await
-    });
+    let events = create_resource(
+        move || (range(), last_authentication_attempt()),
+        |(range, _)| async move {
+            api_request::<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _>("/events", &range)
+                .await
+        },
+    );
 
     let plugin_manager =
         create_action(|_: &()| async { plugin_manager::PluginManager::new().await });
     plugin_manager.dispatch(());
 
     let params = use_params::<LatestParams>();
-    let exclude = create_memo(move |_| {
-        match params() {
-            Ok(v) => v.exclude.unwrap_or_default().split(",").map(|v|v.into()).collect::<Vec<String>>(),
-            Err(_e) => vec![]
-        }
+    let exclude = create_memo(move |_| match params() {
+        Ok(v) => v
+            .exclude
+            .unwrap_or_default()
+            .split(",")
+            .map(|v| v.into())
+            .collect::<Vec<String>>(),
+        Err(_e) => vec![],
     });
 
-    let current_event = create_memo(move |_| {
-        match events() {
-            Some(v) => {
-                match v {
-                    Ok(v) => {
-                        let mut newest_event: Option<(AvailablePlugins, CompressedEvent)> = None;
-                        for (plugin, events) in v.into_iter() {
-                            if exclude().contains(&plugin.to_string()) {
-                                continue;
-                            }
-                            for event in events {
-                                let replace = if let Some(v) = &newest_event { 
-                                    v.1.time.cmp(&event.time).is_lt()
-                                } else {true};
-                                if replace {
-                                    newest_event = Some((plugin.clone(), event));
-                                }
-                            }
-                        }
-                        Some(Ok(newest_event))
+    let current_event = create_memo(move |_| match events() {
+        Some(v) => match v {
+            Ok(v) => {
+                let mut newest_event: Option<(AvailablePlugins, CompressedEvent)> = None;
+                for (plugin, events) in v.into_iter() {
+                    if exclude().contains(&plugin.to_string()) {
+                        continue;
                     }
-                    Err(e) => Some(Err(e))
+                    for event in events {
+                        let replace = if let Some(v) = &newest_event {
+                            v.1.time.cmp(&event.time).is_lt()
+                        } else {
+                            true
+                        };
+                        if replace {
+                            newest_event = Some((plugin.clone(), event));
+                        }
+                    }
                 }
+                Some(Ok(newest_event))
             }
-            None => {
-                None
-            }
-        }
+            Err(e) => Some(Err(e)),
+        },
+        None => None,
     });
 
     view! {

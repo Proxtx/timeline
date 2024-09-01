@@ -1,4 +1,9 @@
-use {chrono::Utc, leptos::wasm_bindgen::JsCast, leptos::*, stylers::style, web_sys::MouseEvent};
+use {
+    chrono::Utc,
+    leptos::{wasm_bindgen::JsCast, *},
+    stylers::style,
+    web_sys::MouseEvent,
+};
 
 #[component]
 pub fn TitleBar(

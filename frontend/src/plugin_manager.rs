@@ -14,7 +14,6 @@ pub trait Plugin {
 
     fn get_style(&self) -> Style;
 
-    
     fn get_icon(&self) -> IconLocation {
         IconLocation::Default
     }
@@ -26,7 +25,7 @@ pub enum Style {
     Acc2,
     Light,
     Dark,
-    Custom(String, String, String)
+    Custom(String, String, String),
 }
 
 impl Style {
@@ -36,7 +35,7 @@ impl Style {
             Style::Acc2 => "var(--accentColor2Light)",
             Style::Light => "var(--lightColor)",
             Style::Dark => "var(--darkColor)",
-            Style::Custom(_, light_color, _) => light_color
+            Style::Custom(_, light_color, _) => light_color,
         }
     }
 
@@ -44,7 +43,7 @@ impl Style {
         match self {
             Style::Light => "var(--darkColor)",
             Style::Custom(_, _, text_color) => text_color,
-            _ => "var(--lightColor)"
+            _ => "var(--lightColor)",
         }
     }
 }
@@ -64,7 +63,7 @@ impl fmt::Display for Style {
             Style::Dark => {
                 write!(f, "var(--darkColorLight)")
             }
-            Style::Custom(dark_color, _, _) => write!(f, "{}", dark_color)
+            Style::Custom(dark_color, _, _) => write!(f, "{}", dark_color),
         }
     }
 }
