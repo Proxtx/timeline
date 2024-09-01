@@ -1,6 +1,9 @@
 use {
     serde::{Deserialize, Serialize, Serializer},
-    std::{fmt, hash::Hash},
+    std::{
+        fmt,
+        hash::{Hash, Hasher},
+    },
 };
 include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
