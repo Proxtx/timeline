@@ -15,6 +15,9 @@ use {
     types::api::{APIResult, AvailablePlugins, CompressedEvent, EventWrapper},
 };
 
+#[derive(Clone)]
+pub struct DisplayWithDay(pub bool);
+
 pub type DefaultEventsViewerType = fn(CompressedEvent, Box<dyn Fn()>) -> View;
 pub type DefaultWithAvailablePluginsEventsViewerType =
     fn((AvailablePlugins, CompressedEvent), Box<dyn Fn()>) -> View;
@@ -284,6 +287,12 @@ pub fn EventDisplay<T: EventWrapper>(
         }
     };
 
+    let display_with_day = use_context::<DisplayWithDay>();
+    let display_with_day = match display_with_day {
+        Some(v) => v.0,
+        None => false,
+    };
+
     let wrapper_ref = create_node_ref();
 
     let event_2 = event.clone();
@@ -412,7 +421,16 @@ pub fn EventDisplay<T: EventWrapper>(
                 >
 
                     <h3>{move || event_unwrapped_2().title}</h3>
-                    <a>{move || format!("{}", event_unwrapped_3().time)}</a>
+                    <a>
+                        {move || {
+                            if display_with_day {
+                                event_unwrapped_3().time.display_with_day()
+                            } else {
+                                format!("{}", event_unwrapped_3().time)
+                            }
+                        }}
+
+                    </a>
                 </button>
                 <EventContent
                     plugin_manager=plugin_manager

@@ -91,6 +91,18 @@ impl Timing {
             }),
         }
     }
+
+    pub fn display_with_day(&self) -> String {
+        let specified_date = match self {
+            Timing::Instant(v) => v,
+            Timing::Range(v) => &v.start,
+        };
+        format!(
+            "{} {}",
+            specified_date.date_naive().format("%d.%m.%Y"),
+            self
+        )
+    }
 }
 
 impl fmt::Display for Timing {
