@@ -221,25 +221,21 @@ fn EventsDisplay<T: EventWrapper>(
             style:background-color=move || { format!("{}", plugin_manager().get_style(&plugin())) }
         >
 
-            <For
-                each=selected_events
-                key=|e| {
-                    let mut hasher = DefaultHasher::new();
-                    e.hash(&mut hasher);
-                    hasher.finish()
-                }
-
-                children=move |e| {
-                    view! {
-                        <EventDisplay
-                            event=e
-                            plugin_manager=plugin_manager_d.clone()
-                            slide_over=slide_over.clone()
-                            plugin=plugin_d.clone()
-                        />
-                    }
-                }
-            />
+            {move || {
+                selected_events()
+                    .into_iter()
+                    .map(|e| {
+                        view! {
+                            <EventDisplay
+                                event=e
+                                plugin_manager=plugin_manager_d.clone()
+                                slide_over=slide_over.clone()
+                                plugin=plugin_d.clone()
+                            />
+                        }
+                    })
+                    .collect_view()
+            }}
 
         </div>
     }

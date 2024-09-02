@@ -124,7 +124,6 @@ where
     Self: Clone + PartialEq + 'static,
 {
     fn get_compressed_event(&self) -> CompressedEvent;
-    fn hash(&self, hasher: &mut impl Hasher);
 }
 
 #[cfg(feature = "client")]
@@ -132,18 +131,12 @@ impl EventWrapper for CompressedEvent {
     fn get_compressed_event(&self) -> CompressedEvent {
         self.clone()
     }
-    fn hash(&self, hasher: &mut impl Hasher) {
-        format!("{} --&&-- {}", self.data, self.time).hash(hasher)
-    }
 }
 
 #[cfg(feature = "client")]
 impl EventWrapper for (AvailablePlugins, CompressedEvent) {
     fn get_compressed_event(&self) -> CompressedEvent {
         self.1.clone()
-    }
-    fn hash(&self, hasher: &mut impl Hasher) {
-        self.1.hash(hasher)
     }
 }
 
