@@ -133,7 +133,7 @@ impl EventWrapper for CompressedEvent {
         self.clone()
     }
     fn hash(&self, hasher: &mut impl Hasher) {
-        self.data.hash(hasher)
+        format!("{} --&&-- {}", self.data, self.time).hash(hasher)
     }
 }
 
@@ -143,7 +143,7 @@ impl EventWrapper for (AvailablePlugins, CompressedEvent) {
         self.1.clone()
     }
     fn hash(&self, hasher: &mut impl Hasher) {
-        self.1.data.hash(hasher)
+        self.1.hash(hasher)
     }
 }
 

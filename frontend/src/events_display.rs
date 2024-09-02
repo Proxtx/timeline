@@ -341,7 +341,7 @@ pub fn EventDisplay<T: EventWrapper>(
         _ => None,
     };
 
-    let drag_initiated = move || drag_movement().map(|v| v.0 <= -10.0);
+    let drag_initiated = move || drag_movement().map(|v| v.0 <= -50.0);
 
     let slide_over_visible = move || {
         matches!(
