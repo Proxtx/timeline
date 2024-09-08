@@ -7,3 +7,8 @@ Timeline is a project 100% written in rust. Timeline aims to collect the most da
 1. build the frontend by running trunk build --release in the frontend directory
 2. run the package generator with cargo run
 3. to run the timeline server simply run cargo run --release in the server directory
+
+# experiences
+1. enable the experiences feature 
+2. create the "experiences_location.txt" file and write the path of the experiences project to it
+3. add the experiences url field to the config
