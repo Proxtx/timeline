@@ -17,6 +17,10 @@ pub trait Plugin {
     fn get_icon(&self) -> IconLocation {
         IconLocation::Default
     }
+
+    fn get_event_overview(&self, events: &Vec<CompressedEvent>) -> Option<View> {
+        None
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
