@@ -222,7 +222,12 @@ fn EventsDisplay<T: EventWrapper>(
         >
 
             {move || {
-                selected_events()
+                let events = selected_events();
+                if let Some(v) = plugin_manager.get_plugin(plugin).get_overview(&selected_events) {
+                    v
+                }
+                else {
+                events
                     .into_iter()
                     .map(|e| {
                         view! {
@@ -235,6 +240,7 @@ fn EventsDisplay<T: EventWrapper>(
                         }
                     })
                     .collect_view()
+                }
             }}
 
         </div>
