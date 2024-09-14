@@ -203,6 +203,7 @@ fn EventsDisplay<T: EventWrapper>(
     #[prop(into)] slide_over: MaybeSignal<
         Option<impl Fn(T, Box<dyn Fn()>) -> View + Clone + 'static>,
     >,
+    #[prop(into, default=false.into())] use_plugin_overview: MaybeSignal<bool>
 ) -> impl IntoView {
     let css = style! {
         .wrapper {
@@ -223,7 +224,7 @@ fn EventsDisplay<T: EventWrapper>(
 
             {move || {
                 let events = selected_events();
-                if let Some(v) = plugin_manager.get_plugin(plugin).get_overview(&selected_events) {
+                if use_plugin_overview() && let Some(v) = plugin_manager.get_plugin(plugin).get_overview(&selected_events) {
                     v
                 }
                 else {
