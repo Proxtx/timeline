@@ -28,6 +28,7 @@ pub fn EventsViewer<T: EventWrapper>(
     #[prop(into, default=None.into())] slide_over: Option<
         impl Fn(T, Box<dyn Fn()>) -> View + Clone + 'static,
     >,
+    #[prop(into, default=false.into())] use_plugin_overview: MaybeSignal<bool>
 ) -> impl IntoView {
     let plugin_manager_e = plugin_manager.clone();
 
@@ -89,6 +90,7 @@ pub fn EventsViewer<T: EventWrapper>(
                             selected_events=selected_events
                             plugin_manager=plugin_manager_e.clone()
                             slide_over=slide_over.clone()
+                            use_plugin_overview
                         />
                     }
                 }
