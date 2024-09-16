@@ -3,7 +3,7 @@ use {
     leptos::View,
     serde::de::DeserializeOwned,
     std::{collections::HashMap, fmt},
-    types::api::AvailablePlugins,
+    types::api::{AvailablePlugins, CompressedEvent},
     url::Url,
 };
 pub trait Plugin {
@@ -18,7 +18,8 @@ pub trait Plugin {
         IconLocation::Default
     }
 
-    fn get_event_overview(&self, events: &Vec<CompressedEvent>) -> Option<View> {
+    fn get_events_overview(&self, events: &Vec<CompressedEvent>) -> Option<View>
+    {
         None
     }
 }
@@ -109,6 +110,11 @@ impl PluginManager {
 
     pub fn get_icon(&self, plugin: &AvailablePlugins) -> IconLocation {
         self.plugins.get(plugin).unwrap().get_icon()
+    }
+
+    pub fn get_events_overview(&self, plugin: &AvailablePlugins, events: &Vec<CompressedEvent>) -> Option<View>
+    {
+        self.plugins.get(plugin).unwrap().get_events_overview(events)
     }
 }
 

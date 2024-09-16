@@ -28,7 +28,7 @@ pub fn EventsViewer<T: EventWrapper>(
     #[prop(into, default=None.into())] slide_over: Option<
         impl Fn(T, Box<dyn Fn()>) -> View + Clone + 'static,
     >,
-    #[prop(into, default=false.into())] use_plugin_overview: MaybeSignal<bool>
+    #[prop(into, default=false.into())] use_plugin_overview: MaybeSignal<bool>,
 ) -> impl IntoView {
     let plugin_manager_e = plugin_manager.clone();
 
@@ -205,7 +205,7 @@ fn EventsDisplay<T: EventWrapper>(
     #[prop(into)] slide_over: MaybeSignal<
         Option<impl Fn(T, Box<dyn Fn()>) -> View + Clone + 'static>,
     >,
-    #[prop(into, default=false.into())] use_plugin_overview: MaybeSignal<bool>
+    #[prop(into, default=false.into())] use_plugin_overview: MaybeSignal<bool>,
 ) -> impl IntoView {
     let css = style! {
         .wrapper {
@@ -226,23 +226,31 @@ fn EventsDisplay<T: EventWrapper>(
 
             {move || {
                 let events = selected_events();
-                if use_plugin_overview() && let Some(v) = plugin_manager.get_plugin(plugin).get_overview(&selected_events) {
+                if use_plugin_overview()
+                    && let Some(v) = plugin_manager_d()
+                        .get_events_overview(
+                            &plugin_d(),
+                            &selected_events()
+                                .into_iter()
+                                .map(|v| v.get_compressed_event())
+                                .collect(),
+                        )
+                {
                     v
-                }
-                else {
-                events
-                    .into_iter()
-                    .map(|e| {
-                        view! {
-                            <EventDisplay
-                                event=e
-                                plugin_manager=plugin_manager_d.clone()
-                                slide_over=slide_over.clone()
-                                plugin=plugin_d.clone()
-                            />
-                        }
-                    })
-                    .collect_view()
+                } else {
+                    events
+                        .into_iter()
+                        .map(|e| {
+                            view! {
+                                <EventDisplay
+                                    event=e
+                                    plugin_manager=plugin_manager_d.clone()
+                                    slide_over=slide_over.clone()
+                                    plugin=plugin_d.clone()
+                                />
+                            }
+                        })
+                        .collect_view()
                 }
             }}
 
