@@ -100,7 +100,7 @@ impl Timing {
         };
         format!(
             "{} {}",
-            specified_date.date_naive().format("%d.%m.%Y"),
+            specified_date.naive_local().date().format("%d.%m.%Y"),
             self
         )
     }
