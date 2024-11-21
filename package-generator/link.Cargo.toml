@@ -1,0 +1,11 @@
+[package]
+name = "link"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "dyn_link"
+path = "src/lib.rs"
+
+[features]
+experiences = ["dep:experiences_navigator"]

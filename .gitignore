@@ -1,5 +1,8 @@
 plugins/
 experiences_location.txt
 
-frontend/Cargo.toml
-frontend/Cargo.lock
+link/Cargo.toml
+link/Cargo.lock
+link/target
+server_api/target
+client_api/target

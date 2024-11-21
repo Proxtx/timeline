@@ -8,7 +8,7 @@ edition = "2021"
 stylers = "1.0.0-alpha"
 
 [features]
-experiences = ["types/experiences", "dep:experiences_navigator"]
+experiences = ["types/experiences", "dyn_link/experiences"]
 
 [lib]
 name = "timeline_frontend_lib"
@@ -33,3 +33,4 @@ stylers = "1.0.0-alpha"
 types = {path = "../types/", features = ["client"]}
 url = { version = "2.5.0", features = ["serde"] }
 web-sys = { version = "0.3.69", features = ["TouchList", "TouchEvent", "Touch", "HtmlDocument"] }
+dyn_link = {path = "../link/", features = ["client"]}

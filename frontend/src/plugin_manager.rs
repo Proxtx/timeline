@@ -6,52 +6,8 @@ use {
     types::api::{AvailablePlugins, CompressedEvent},
     url::Url,
 };
-pub trait Plugin {
-    fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
-    where
-        Self: Sized;
-    fn get_component(&self, data: PluginEventData) -> EventResult<Box<dyn FnOnce() -> View>>;
 
-    fn get_style(&self) -> Style;
 
-    fn get_icon(&self) -> IconLocation {
-        IconLocation::Default
-    }
-
-    fn get_events_overview(&self, events: &Vec<CompressedEvent>) -> Option<View>
-    {
-        None
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Style {
-    Acc1,
-    Acc2,
-    Light,
-    Dark,
-    Custom(String, String, String),
-}
-
-impl Style {
-    pub fn light(&self) -> &str {
-        match self {
-            Style::Acc1 => "var(--accentColor1Light)",
-            Style::Acc2 => "var(--accentColor2Light)",
-            Style::Light => "var(--lightColor)",
-            Style::Dark => "var(--darkColor)",
-            Style::Custom(_, light_color, _) => light_color,
-        }
-    }
-
-    pub fn text(&self) -> &str {
-        match self {
-            Style::Light => "var(--darkColor)",
-            Style::Custom(_, _, text_color) => text_color,
-            _ => "var(--lightColor)",
-        }
-    }
-}
 
 impl fmt::Display for Style {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

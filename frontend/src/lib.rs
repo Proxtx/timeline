@@ -11,5 +11,3 @@ use {
     std::collections::HashMap,
     types::api::AvailablePlugins,
 };
-
-include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
