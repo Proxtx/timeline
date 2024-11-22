@@ -15,3 +15,4 @@ tokio = { version = "1.41.1", features = ["full"] }
 url = { version = "2.5.3", features = ["serde"] }
 mongodb = { version = "2.8.1", features = ["tokio-runtime"] }
 rocket = { version = "0.5.1", features = ["json"] }
+types = { path = "../types/", features = ["server"] }

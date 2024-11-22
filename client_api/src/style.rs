@@ -26,3 +26,23 @@ impl Style {
         }
     }
 }
+
+impl fmt::Display for Style {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Style::Acc1 => {
+                write!(f, "var(--accentColor1)")
+            }
+            Style::Acc2 => {
+                write!(f, "var(--accentColor2)")
+            }
+            Style::Light => {
+                write!(f, "var(--lighterColor)")
+            }
+            Style::Dark => {
+                write!(f, "var(--darkColorLight)")
+            }
+            Style::Custom(dark_color, _, _) => write!(f, "{}", dark_color),
+        }
+    }
+}

@@ -4,5 +4,6 @@
     "--stdin",
     "--rustfmt"
   ],
-  "rust-analyzer.cargo.features": "all"
+  "rust-analyzer.cargo.features": "all",
+  "rust-analyzer.cargo.buildScripts.useRustcWrapper": false
 }
