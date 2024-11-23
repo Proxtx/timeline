@@ -1,9 +1,9 @@
-use {
-    crate::{api::relative_url, plugin_manager},
-    leptos::{view, IntoView, View},
-    serde::{Deserialize, Serialize},
-    types::api::AvailablePlugins,
-};
+use client_api::plugin::{IconLocation, PluginTrait};
+use client_api::result::EventResult;
+use client_api::style::Style;
+use client_api::{api, external::{leptos::{view, IntoView, View}, types::{available_plugins::AvailablePlugins, external::serde::{Deserialize, Serialize}}}};
+use client_api::plugin::PluginData;
+use client_api::plugin::PluginEventData;
 
 #[derive(Serialize, Deserialize)]
 struct Error {
@@ -13,11 +13,11 @@ struct Error {
 
 pub struct Plugin {}
 
-impl plugin_manager::Plugin for Plugin {
-    fn get_style(&self) -> plugin_manager::Style {
-        plugin_manager::Style::Light
+impl PluginTrait for Plugin {
+    fn get_style(&self) -> Style {
+        Style::Light
     }
-    async fn new(_data: plugin_manager::PluginData) -> Self
+    async fn new(_data: PluginData) -> Self
     where
         Self: Sized,
     {
@@ -26,8 +26,8 @@ impl plugin_manager::Plugin for Plugin {
 
     fn get_component(
         &self,
-        data: plugin_manager::PluginEventData,
-    ) -> crate::plugin_manager::EventResult<Box<dyn FnOnce() -> leptos::View>> {
+        data: PluginEventData,
+    ) -> EventResult<Box<dyn FnOnce() -> leptos::View>> {
         let data = data.get_data::<Error>()?;
         Ok(Box::new(move || -> View {
             view! {
@@ -45,7 +45,7 @@ impl plugin_manager::Plugin for Plugin {
         }))
     }
 
-    fn get_icon(&self) -> plugin_manager::IconLocation {
-        plugin_manager::IconLocation::Custom(relative_url("/icons/errorIcon.svg").unwrap())
+    fn get_icon(&self) -> IconLocation {
+        IconLocation::Custom(api::relative_url("/icons/errorIcon.svg").unwrap())
     }
 }

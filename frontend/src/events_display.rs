@@ -1,7 +1,15 @@
 use {
-    crate::{
+    crate::plugin_manager::PluginManager,
+    client_api::{
         api::relative_url,
-        plugin_manager::{EventResult, IconLocation, PluginManager, Style},
+        external::types::{
+            api::{APIResult, CompressedEvent, EventWrapper},
+            available_plugins::AvailablePlugins,
+        },
+        plugin::IconLocation,
+        result::EventResult,
+        style::Style,
+        types::external::serde_json,
     },
     leptos::*,
     leptos_use::*,
@@ -11,7 +19,6 @@ use {
         hash::{DefaultHasher, Hasher},
     },
     stylers::style,
-    types::api::{APIResult, AvailablePlugins, CompressedEvent, EventWrapper},
 };
 
 #[derive(Clone)]
@@ -186,8 +193,7 @@ fn AppSelect(
                                     let style = plg().get_style(&type_3);
                                     format!("{}", style)
                                 }
-                            >
-                            </div>
+                            ></div>
                         </div>
                     }
                 }
@@ -480,7 +486,7 @@ pub fn EventDisplay<T: EventWrapper>(
 fn EventContent(
     #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
     #[prop(into)] plugin: MaybeSignal<AvailablePlugins>,
-    #[prop(into)] data: MaybeSignal<String>,
+    #[prop(into)] data: MaybeSignal<serde_json::Value>,
     #[prop(into)] expanded: MaybeSignal<bool>,
 ) -> impl IntoView {
     let plugin_manager_2 = plugin_manager.clone();
@@ -491,7 +497,7 @@ fn EventContent(
     view! {
         {move || match (expanded(), read_view()) {
             (true, Some(v)) => {
-                view! { <ShowResultEventView style=Signal::derive(style.clone()) view=v/> }
+                view! { <ShowResultEventView style=Signal::derive(style.clone()) view=v /> }
                     .into_view()
             }
             (true, None) => {

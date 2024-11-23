@@ -33,7 +33,7 @@ pub fn generate_available_plugins(item: TokenStream) -> TokenStream {
     TokenStream::from(expaned)
 }
 
-fn get_plugins() -> Vec<String> {
+pub fn get_plugins() -> Vec<String> {
     let dir = read_dir("../plugins/").expect("Unable to read plugins directory");
     dir.map(|v| {
         v.expect("Unable to read entry in the plugins directory")

@@ -1,17 +1,10 @@
 use {
-    crate::Plugins,
-    leptos::View,
-    serde::de::DeserializeOwned,
-    std::{collections::HashMap, fmt},
-    types::api::{AvailablePlugins, CompressedEvent},
-    url::Url,
+    client_api::{external::{types::{api::CompressedEvent, available_plugins::AvailablePlugins}, url::Url}, plugin::{IconLocation, PluginData, PluginEventData, PluginTrait}, result::EventResult, style::Style, types::external::serde_json}, dyn_link::client_plugins::Plugins, leptos::View, serde::de::DeserializeOwned, std::{collections::HashMap, fmt}
 };
-
-pub struct PluginData {}
 
 #[derive(Clone)]
 pub struct PluginManager {
-    plugins: HashMap<AvailablePlugins, std::rc::Rc<Box<dyn Plugin>>>,
+    plugins: HashMap<AvailablePlugins, std::rc::Rc<Box<dyn PluginTrait>>>,
 }
 
 impl PluginManager {
@@ -30,7 +23,7 @@ impl PluginManager {
     pub fn get_component(
         &self,
         plugin: &AvailablePlugins,
-        data: &str,
+        data: &serde_json::Value,
     ) -> EventResult<impl FnOnce() -> View> {
         self.plugins
             .get(plugin)

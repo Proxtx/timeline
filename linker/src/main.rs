@@ -63,6 +63,10 @@ async fn main() {
             .display(),
     );
 
+    str += "link_proc_macro = {path = \"../link_proc_macro/\"}\n";
+
+    str += "client_api = {path = \"../client_api\"}";
+
     write("../link/Cargo.toml", str)
         .await
         .expect("Unable to write new Cargo.toml file");

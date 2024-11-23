@@ -1,6 +1,16 @@
-use types::external::serde_json;
+use crate::result::EventResult;
+use crate::style::Style;
+use leptos::View;
+use std::fmt;
+use types::{
+    api::CompressedEvent,
+    external::{chrono::naive::serde, serde::de::DeserializeOwned, serde_json},
+};
+use url::Url;
 
-pub trait Plugin {
+pub struct PluginData {}
+
+pub trait PluginTrait {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
     where
         Self: Sized;
@@ -23,7 +33,7 @@ pub enum IconLocation {
 }
 
 pub struct PluginEventData<'a> {
-    data: &'a str,
+    pub data: &'a serde_json::Value,
 }
 
 impl<'a> PluginEventData<'a> {
@@ -31,39 +41,10 @@ impl<'a> PluginEventData<'a> {
     where
         T: DeserializeOwned,
     {
-        Ok(serde_json::from_str(self.data)?)
+        Ok(serde_json::from_value(self.data.clone())?)
     }
 
-    pub fn get_raw(&self) -> &str {
+    pub fn get_raw(&self) -> &serde_json::Value {
         self.data
-    }
-}
-
-pub type EventResult<T> = Result<T, EventError>;
-
-#[derive(Debug, Clone)]
-pub enum EventError {
-    FaultyInitData(String),
-}
-
-impl std::error::Error for EventError {}
-
-impl fmt::Display for EventError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::FaultyInitData(v) => {
-                write!(
-                    f,
-                    "Unable to parse initial data to generate Component: {}",
-                    v
-                )
-            }
-        }
-    }
-}
-
-impl From<serde_json::Error> for EventError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::FaultyInitData(format!("{}", value))
     }
 }

@@ -1,6 +1,8 @@
 use {
     leptos::{use_context, wasm_bindgen::JsCast},
-    reqwest::Client,
+    types::external::reqwest::Client,
+    types::external::serde,
+    types::external::serde_json,
     types::api::{APIResult, TimelineHostname},
     url::{ParseError, Url},
     web_sys::{js_sys::Function, wasm_bindgen::JsValue},

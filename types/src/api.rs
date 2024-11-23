@@ -91,7 +91,7 @@ impl From<serde_json::Error> for APIError {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[cfg_attr(feature = "client", derive(Deserialize, Clone, PartialEq))]
 pub struct CompressedEvent {
     pub data: serde_json::Value,

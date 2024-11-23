@@ -13,3 +13,10 @@ experiences = ["types/experiences"]
 [dependencies]
 leptos = { version = "0.6.14", features = ["csr", "nightly"] }
 types = { path = "../types/", features = ["client"] }
+url = "2.5.4"
+web-sys = { version = "0.3.69", features = [
+  "TouchList",
+  "TouchEvent",
+  "Touch",
+  "HtmlDocument",
+] }

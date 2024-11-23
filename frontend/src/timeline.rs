@@ -1,10 +1,10 @@
 use {
     crate::api::api_request,
-    chrono::{DateTime, SubsecRound, TimeDelta, Timelike, Utc},
+    client_api::external::types::external::chrono::{DateTime, SubsecRound, TimeDelta, Timelike, Utc},
     leptos::*,
     rand::Rng,
     stylers::style,
-    types::timing::{Marker, TimeRange},
+    client_api::external::types::timing::{Marker, TimeRange},
 };
 
 #[component]
@@ -142,7 +142,7 @@ pub fn Timeline(
                 None => ().into_view(),
             }}
 
-            <img src="/icons/pointer.svg" class="pointer" node_ref=pointer_ref/>
+            <img src="/icons/pointer.svg" class="pointer" node_ref=pointer_ref />
         </div>
     }
 }

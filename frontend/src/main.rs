@@ -1,6 +1,5 @@
 #![feature(let_chains)]
 
-mod api;
 mod error;
 mod event_manager;
 mod events_display;
@@ -9,17 +8,19 @@ mod timeline;
 mod wrappers;
 
 use {
-    api::api_request,
-    chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
+    client_api::api::api_request,
+    client_api::api,
+    client_api::external::types::external::chrono,
+    client_api::external::types::external::chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
     events_display::{DefaultEventsViewerType, EventDisplay},
     leptos::*,
     leptos_router::*,
-    plugin_manager::{Plugin, PluginData},
     std::{collections::HashMap, str::FromStr},
     stylers::style,
-    types::{
-        api::{APIError, APIResult, AvailablePlugins, CompressedEvent, TimelineHostname},
+    client_api::external::types::{
+        api::{APIError, APIResult, CompressedEvent, TimelineHostname},
         timing::TimeRange,
+        available_plugins::AvailablePlugins
     },
     wrappers::{Login, StyledView, TitleBar},
 };

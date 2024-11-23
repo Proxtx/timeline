@@ -1,13 +1,7 @@
 #![feature(let_chains)]
 
-pub mod api;
+pub use client_api;
 mod error;
 pub mod events_display;
 pub mod plugin_manager;
 pub mod wrappers;
-
-use {
-    plugin_manager::{Plugin, PluginData},
-    std::collections::HashMap,
-    types::api::AvailablePlugins,
-};

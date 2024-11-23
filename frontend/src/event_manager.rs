@@ -1,14 +1,17 @@
 use {
     crate::{
-        api::api_request, events_display::EventsViewer, plugin_manager::PluginManager, StyledView,
+        events_display::EventsViewer, plugin_manager::PluginManager, StyledView,
     },
+    client_api::api::api_request,
+    dyn_link::experiences_navigator_lib,
     experiences_navigator_lib::experiences_types::types::ExperiencesHostname,
     leptos::*,
     std::{collections::HashMap, sync::Arc},
     timeline_frontend_lib::events_display::DefaultWithAvailablePluginsEventsViewerType,
-    types::{
-        api::{AvailablePlugins, CompressedEvent},
+    client_api::external::types::{
+        api::CompressedEvent,
         timing::TimeRange,
+        available_plugins::AvailablePlugins
     },
 };
 
@@ -144,7 +147,7 @@ fn DisplayCurrentEvents(
                     })>
                         <b>Close</b>
                     </Band>
-                    <StandaloneNavigator selected_experience=selected_experience/>
+                    <StandaloneNavigator selected_experience=selected_experience />
                     <Band click=Callback::new(move |_| {
                         spawn_local({
                             let close_callback = close_callback.clone();
@@ -184,10 +187,9 @@ fn DisplayCurrentEvents(
     type AVCTuple = (AvailablePlugins, CompressedEvent);
 
     view! {
-        <EventsViewer<AVCTuple, DefaultWithAvailablePluginsEventsViewerType>
-            events=current_events
-            plugin_manager=plugin_manager.clone()
-            slide_over=slide_over
-        />
+        <EventsViewer<
+        AVCTuple,
+        DefaultWithAvailablePluginsEventsViewerType,
+    > events=current_events plugin_manager=plugin_manager.clone() slide_over=slide_over />
     }
 }
