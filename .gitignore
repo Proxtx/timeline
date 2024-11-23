@@ -6,3 +6,4 @@ link/Cargo.lock
 link/target
 server_api/target
 client_api/target
+link_proc_macro/target

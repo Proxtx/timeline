@@ -1,9 +1,8 @@
+#[cfg(feature = "client")]
+use crate::available_plugins::AvailablePlugins;
 use {
-    serde::{Deserialize, Serialize, Serializer},
-    std::{
-        fmt,
-        hash::{Hash, Hasher},
-    },
+    serde::{Deserialize, Serialize},
+    std::fmt,
 };
 
 pub type APIResult<T> = Result<T, APIError>;
