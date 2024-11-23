@@ -17,9 +17,9 @@ futures = "0.3.30"
 mongodb = { version = "2.8.1", features = ["tokio-runtime"] }
 reqwest = "0.12.1"
 rocket = { version = "0.5.0", features = ["json"] }
-serde = "1.0.197"
+serde = "1.0.215"
 serde_json = "1.0.114"
 tokio = { version = "1.36.0", features = ["full"] }
 toml = "0.8.10"
-types = {path = "../types", features = ["server"]}
+types = { path = "../types", features = ["server"] }
 url = { version = "2.5.0", features = ["serde"] }

@@ -5,7 +5,6 @@ use {
         hash::{Hash, Hasher},
     },
 };
-include!(concat!(env!("OUT_DIR"), "/plugins.rs"));
 
 pub type APIResult<T> = Result<T, APIError>;
 
@@ -96,26 +95,9 @@ impl From<serde_json::Error> for APIError {
 #[derive(Serialize)]
 #[cfg_attr(feature = "client", derive(Deserialize, Clone, PartialEq))]
 pub struct CompressedEvent {
-    //#[serde(serialize_with = "serialize_data")]
-    //#[cfg(feature = "server")]
     pub data: serde_json::Value,
-    //#[cfg(feature = "client")]
-    //pub data: String,
     pub time: crate::timing::Timing,
     pub title: String,
-}
-
-pub fn serialize_data<S>(
-    data: &Box<dyn erased_serde::Serialize + Sync + Send>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: Serializer,
-{
-    serializer.serialize_str(&match serde_json::to_string(data) {
-        Ok(v) => v,
-        Err(e) => return Err(serde::ser::Error::custom(format!("{}", e))),
-    })
 }
 
 #[cfg(feature = "client")]

@@ -1,3 +1,7 @@
+use {
+    types::external::serde_json
+}
+
 pub trait Plugin {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
     where

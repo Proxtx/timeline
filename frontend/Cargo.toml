@@ -8,7 +8,7 @@ edition = "2021"
 stylers = "1.0.0-alpha"
 
 [features]
-experiences = ["types/experiences", "dyn_link/experiences"]
+experiences = ["dyn_link/experiences", "client_api/experiences"]
 
 [lib]
 name = "timeline_frontend_lib"
@@ -19,18 +19,12 @@ name = "timeline_frontend_bin"
 path = "src/main.rs"
 
 [dependencies]
-chrono = "0.4.35"
 console_error_panic_hook = "0.1.7"
 cookie = "0.18.0"
-leptos = { version = "0.6.14", features = ["csr", "nightly"] }
 leptos-use = "0.12.0"
 leptos_router = { version = "0.6.14", features = ["csr"] }
 rand = "0.8.5"
-reqwest = "0.12.5"
-serde = { version = "1.0.197", features = ["derive"] }
-serde_json = "1.0.114"
 stylers = "1.0.0-alpha"
-types = { path = "../types/", features = ["client"] }
 url = { version = "2.5.0", features = ["serde"] }
 web-sys = { version = "0.3.69", features = [
         "TouchList",
@@ -39,3 +33,4 @@ web-sys = { version = "0.3.69", features = [
         "HtmlDocument",
 ] }
 dyn_link = { path = "../link/", features = ["client"] }
+client_api = { path = "../client_api" }

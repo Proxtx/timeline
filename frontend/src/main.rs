@@ -26,7 +26,7 @@ use {
 
 fn main() {
     console_error_panic_hook::set_once();
-    mount_to_body(|| view! { <MainView/> })
+    mount_to_body(|| view! { <MainView /> })
 }
 
 #[component]
@@ -36,12 +36,12 @@ fn MainView() -> impl IntoView {
     view! {
         <Router>
             <Routes>
-                <Route path="/timeline/:date" view=Timeline/>
-                <Route path="/timeline" view=Timeline/>
-                <Route path="/" view=Redirect/>
-                <Route path="*not_found" view=NotFound/>
-                <Route path="/event/latest/exclude/:exclude" view=LatestEvent/>
-                <Route path="/event/latest" view=LatestEvent/>
+                <Route path="/timeline/:date" view=Timeline />
+                <Route path="/timeline" view=Timeline />
+                <Route path="/" view=Redirect />
+                <Route path="*not_found" view=NotFound />
+                <Route path="/event/latest/exclude/:exclude" view=LatestEvent />
+                <Route path="/event/latest" view=LatestEvent />
             </Routes>
         </Router>
     }
@@ -51,7 +51,7 @@ fn MainView() -> impl IntoView {
 fn NotFound() -> impl IntoView {
     view! {
         <StyledView>
-            <TitleBar subtitle=Some("404 - Not Found".to_string())/>
+            <TitleBar subtitle=Some("404 - Not Found".to_string()) />
             <div class="errorWrapper">Was unable to find the page you are looking for.</div>
         </StyledView>
     }
@@ -149,9 +149,15 @@ fn LatestEvent() -> impl IntoView {
 
                                             {
                                                 view! {
-                                                    < EventDisplay < CompressedEvent, DefaultEventsViewerType >
-                                                    event = event plugin_manager = plugin_manager plugin =
-                                                    plugin expanded = create_rw_signal(true) slide_over = None
+                                                    <EventDisplay<
+                                                    CompressedEvent,
+                                                    DefaultEventsViewerType,
+                                                >
+                                                        event=event
+                                                        plugin_manager=plugin_manager
+                                                        plugin=plugin
+                                                        expanded=create_rw_signal(true)
+                                                        slide_over=None
                                                     />
                                                 }
                                             }
@@ -170,7 +176,7 @@ fn LatestEvent() -> impl IntoView {
                             match e {
                                 APIError::AuthenticationError => {
                                     view! {
-                                        <Login update_authentication=write_last_authentication_attempt/>
+                                        <Login update_authentication=write_last_authentication_attempt />
                                     }
                                         .into_view()
                                 }
@@ -358,7 +364,7 @@ fn Timeline() -> impl IntoView {
                                     match e {
                                         APIError::AuthenticationError => {
                                             view! {
-                                                <Login update_authentication=write_last_authentication_attempt/>
+                                                <Login update_authentication=write_last_authentication_attempt />
                                             }
                                                 .into_view()
                                         }
@@ -403,7 +409,7 @@ fn Timeline() -> impl IntoView {
                 }
                 Err(e) => {
                     view! {
-                        <TitleBar subtitle=Some("Error loading Day".to_string())/>
+                        <TitleBar subtitle=Some("Error loading Day".to_string()) />
 
                         <div class="errorWrapper">
                             {move || format!("Error loading date: {}", e)}

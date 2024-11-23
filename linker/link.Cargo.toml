@@ -1,5 +1,5 @@
 [package]
-name = "link"
+name = "dyn_link"
 version = "0.1.0"
 edition = "2021"
 
