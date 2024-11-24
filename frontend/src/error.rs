@@ -1,9 +1,16 @@
-use client_api::plugin::{IconLocation, PluginTrait};
-use client_api::result::EventResult;
-use client_api::style::Style;
-use client_api::{api, external::{leptos::{view, IntoView, View}, types::{available_plugins::AvailablePlugins, external::serde::{Deserialize, Serialize}}}};
-use client_api::plugin::PluginData;
-use client_api::plugin::PluginEventData;
+use client_api::{
+    api,
+    external::{
+        leptos::{view, IntoView, View},
+        types::{
+            available_plugins::AvailablePlugins,
+            external::serde::{Deserialize, Serialize},
+        },
+    },
+    plugin::{IconLocation, PluginData, PluginEventData, PluginTrait},
+    result::EventResult,
+    style::Style,
+};
 
 #[derive(Serialize, Deserialize)]
 struct Error {

@@ -1,10 +1,13 @@
 use {
     crate::db::Database,
-    chrono::Utc,
     futures::StreamExt,
     serde::{Deserialize, Serialize},
     std::sync::Arc,
-    types::api::{AvailablePlugins, CompressedEvent},
+    types::{
+        api::CompressedEvent,
+        available_plugins::AvailablePlugins,
+        external::{chrono::Utc, serde_json},
+    },
     url::Url,
 };
 
@@ -15,11 +18,11 @@ struct Error {
 }
 
 pub struct Plugin {
-    plugin_data: crate::PluginData,
+    plugin_data: crate::plugin::PluginData,
 }
 
-impl crate::Plugin for Plugin {
-    async fn new(data: crate::PluginData) -> Self
+impl crate::plugin::PluginTrait for Plugin {
+    async fn new(data: crate::plugin::PluginData) -> Self
     where
         Self: Sized,
     {
@@ -51,7 +54,7 @@ impl crate::Plugin for Plugin {
                         .clone()
                         .map_or("Error".to_string(), |v| v.to_string()),
                     time: t.timing,
-                    data: Box::new(t.event),
+                    data: serde_json::to_value(t.event).unwrap(),
                 })
             }
 
@@ -59,11 +62,11 @@ impl crate::Plugin for Plugin {
         })
     }
 
-    fn get_type() -> types::api::AvailablePlugins
+    fn get_type() -> types::available_plugins::AvailablePlugins
     where
         Self: Sized,
     {
-        types::api::AvailablePlugins::error
+        types::available_plugins::AvailablePlugins::error
     }
 }
 
@@ -93,7 +96,7 @@ pub fn error_string(
         let url = url.clone();
 
         tokio::spawn(async move {
-            let res = reqwest::get(url).await;
+            let res = types::external::reqwest::get(url).await;
             if let Err(e) = res {
                 println!("Unable to perform get request on error occurrence: {}", e);
             }

@@ -1,22 +1,20 @@
 use {
-    crate::{
-        events_display::EventsViewer, plugin_manager::PluginManager, StyledView,
+    crate::{events_display::EventsViewer, plugin_manager::PluginManager, StyledView},
+    client_api::{
+        api::api_request,
+        external::types::{
+            api::CompressedEvent, available_plugins::AvailablePlugins, timing::TimeRange,
+        },
     },
-    client_api::api::api_request,
-    dyn_link::experiences_navigator_lib,
-    experiences_navigator_lib::experiences_types::types::ExperiencesHostname,
     leptos::*,
     std::{collections::HashMap, sync::Arc},
     timeline_frontend_lib::events_display::DefaultWithAvailablePluginsEventsViewerType,
-    client_api::external::types::{
-        api::CompressedEvent,
-        timing::TimeRange,
-        available_plugins::AvailablePlugins
-    },
 };
 
 #[cfg(feature = "experiences")]
-use experiences_navigator_lib::{navigator::StandaloneNavigator, wrappers::Band};
+use dyn_link::experiences_navigator_lib::{
+    experiences_types::types::ExperiencesHostname, navigator::StandaloneNavigator, wrappers::Band,
+};
 
 #[component]
 pub fn EventManager(
@@ -27,7 +25,7 @@ pub fn EventManager(
     let experiences_url_error = create_resource(
         || {},
         |_| async {
-            let mut res = None;
+            let mut res: Option<client_api::types::api::APIError> = None;
             #[cfg(feature = "experiences")]
             {
                 res = match api_request::<String, _>("/experiences_url", &()).await {
@@ -155,7 +153,7 @@ fn DisplayCurrentEvents(
                             let event = event.clone();
                             async move {
                                 close_callback();
-                                if let Err(e) = experiences_navigator_lib::api::api_request::<
+                                if let Err(e) = dyn_link::experiences_navigator_lib::api::api_request::<
                                     String,
                                     _,
                                 >(

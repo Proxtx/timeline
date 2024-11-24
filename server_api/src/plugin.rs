@@ -1,4 +1,17 @@
-pub trait Plugin: Send + Sync {
+use std::{pin::Pin, sync::Arc};
+
+use {
+    rocket::{Build, Rocket, Route},
+    types::{
+        api::CompressedEvent, available_plugins::AvailablePlugins, external::chrono::Duration,
+        timing::TimeRange,
+    },
+    url::Url,
+};
+
+use crate::db::Database;
+
+pub trait PluginTrait: Send + Sync {
     fn new(data: PluginData) -> impl std::future::Future<Output = Self> + Send
     where
         Self: Sized;
@@ -32,5 +45,32 @@ pub trait Plugin: Send + Sync {
 
     fn rocket_build_access(&self, rocket: Rocket<Build>) -> Rocket<Build> {
         rocket
+    }
+}
+
+pub struct PluginData {
+    pub database: Arc<Database>,
+    pub config: Option<toml::Value>,
+    pub plugin: AvailablePlugins,
+    pub error_url: Option<Url>,
+}
+
+impl PluginData {
+    pub fn report_error(&self, error: &impl std::error::Error) {
+        crate::error::error(
+            self.database.clone(),
+            error,
+            Some(self.plugin.clone()),
+            &self.error_url,
+        )
+    }
+
+    pub fn report_error_string(&self, string: String) {
+        crate::error::error_string(
+            self.database.clone(),
+            string,
+            Some(self.plugin.clone()),
+            &self.error_url,
+        )
     }
 }

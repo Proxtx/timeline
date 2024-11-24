@@ -5,21 +5,23 @@ mod api;
 mod plugin_manager;
 
 use {
-    chrono::Duration,
-    db::Database,
+    dyn_link::server_plugins::Plugins,
     rocket::{
         catch, catchers,
         fs::FileServer,
         response::{content, status},
-        routes, Build, Request, Rocket, Route,
+        routes, Request,
     },
-    std::{io, pin::Pin, sync::Arc},
-    tokio::fs::File,
-    types::{
-        api::{AvailablePlugins, CompressedEvent},
-        timing::TimeRange,
+    server_api::{
+        config,
+        db,
+        external::{
+            tokio::fs::File,
+            types::api::CompressedEvent,
+        },
+        plugin::PluginData,
     },
-    url::Url,
+    std::{io, sync::Arc},
 };
 
 #[rocket::launch]
@@ -87,32 +89,5 @@ async fn not_found(
     match File::open("../frontend/dist/index.html").await {
         Ok(v) => Ok(status::Accepted(content::RawHtml(v))),
         Err(e) => Err(e),
-    }
-}
-
-pub struct PluginData {
-    pub database: Arc<Database>,
-    pub config: Option<toml::Value>,
-    plugin: AvailablePlugins,
-    error_url: Option<Url>,
-}
-
-impl PluginData {
-    pub fn report_error(&self, error: &impl std::error::Error) {
-        error::error(
-            self.database.clone(),
-            error,
-            Some(self.plugin.clone()),
-            &self.error_url,
-        )
-    }
-
-    pub fn report_error_string(&self, string: String) {
-        error::error_string(
-            self.database.clone(),
-            string,
-            Some(self.plugin.clone()),
-            &self.error_url,
-        )
     }
 }

@@ -1,15 +1,19 @@
 use {
-    crate::AvailablePlugins,
     futures::StreamExt,
-    mongodb::{
-        bson::{doc, Document},
-        error::Error as MongoDBError,
-        options::FindOptions,
-        Client, Collection, Cursor, Database as MongoDatabase,
-    },
     serde::{Deserialize, Serialize},
     std::fmt,
-    types::timing::{TimeRange, Timing},
+    types::{
+        api::APIError,
+        available_plugins::AvailablePlugins,
+        external::mongodb::{
+            self,
+            bson::{doc, Document},
+            error::Error as MongoDBError,
+            options::FindOptions,
+            Client, Collection, Cursor, Database as MongoDatabase,
+        },
+        timing::{TimeRange, Timing},
+    },
 };
 
 pub struct Database {
@@ -148,5 +152,11 @@ impl From<MongoDBError> for DatabaseError {
 impl From<mongodb::bson::ser::Error> for DatabaseError {
     fn from(value: mongodb::bson::ser::Error) -> Self {
         DatabaseError::SerializationError(value)
+    }
+}
+
+impl From<DatabaseError> for APIError {
+    fn from(value: DatabaseError) -> Self {
+        Self::DatabaseError(format!("{}", value))
     }
 }

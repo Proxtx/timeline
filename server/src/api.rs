@@ -1,35 +1,34 @@
 use {
-    crate::{config::Config, db::DatabaseError},
+    crate::plugin_manager::PluginManager,
     rocket::{
+        fs::NamedFile,
+        get,
         http::{CookieJar, Status},
         post,
         response::status,
         serde::json::Json,
         State,
     },
-    types::api::{APIError, APIResult},
+    serde::Deserialize,
+    server_api::{
+        config::Config,
+        db::Database,
+        external::types::{
+            api::{ APIResult, CompressedEvent},
+            available_plugins::AvailablePlugins,
+            external::{
+                chrono::{DateTime, SubsecRound, Timelike, Utc},
+                mongodb::{bson::doc, options::FindOptions},
+            },
+            timing::{Marker, TimeRange, Timing},
+        },
+        web::auth,
+    },
+    std::{collections::HashMap, path::PathBuf, sync::Arc},
 };
 
 pub mod markers {
-    use {
-        super::auth,
-        crate::{config::Config, db::Database},
-        chrono::{DateTime, SubsecRound, Timelike, Utc},
-        mongodb::{bson::doc, options::FindOptions},
-        rocket::{
-            http::{CookieJar, Status},
-            post,
-            response::status,
-            serde::json::Json,
-            State,
-        },
-        serde::Deserialize,
-        std::{collections::HashMap, sync::Arc},
-        types::{
-            api::APIResult,
-            timing::{Marker, TimeRange, Timing},
-        },
-    };
+    use super::*;
 
     pub async fn get_markers(range: &TimeRange, database: &Database) -> APIResult<Vec<Marker>> {
         #[derive(Deserialize)]
@@ -97,25 +96,7 @@ pub mod markers {
 }
 
 pub mod events {
-    use {
-        super::auth,
-        crate::{config::Config, plugin_manager::PluginManager},
-        mongodb::bson::doc,
-        rocket::{
-            fs::NamedFile,
-            get,
-            http::{CookieJar, Status},
-            post,
-            response::status,
-            serde::json::Json,
-            State,
-        },
-        std::{collections::HashMap, path::PathBuf},
-        types::{
-            api::{APIResult, AvailablePlugins, CompressedEvent},
-            timing::TimeRange,
-        },
-    };
+    use super::*;
 
     #[post("/events", data = "<request>")]
     pub async fn get_events(
@@ -142,19 +123,6 @@ pub mod events {
     }
 }
 
-pub fn auth(cookies: &CookieJar<'_>, config: &State<Config>) -> APIResult<()> {
-    match cookies.get("pwd") {
-        Some(pwd) => {
-            if pwd.value() != config.password {
-                Err(APIError::AuthenticationError)
-            } else {
-                Ok(())
-            }
-        }
-        None => Err(APIError::AuthenticationError),
-    }
-}
-
 #[cfg(feature = "experiences")]
 #[post("/experiences_url")]
 pub fn experiences_url(config: &State<Config>) -> status::Accepted<Json<APIResult<String>>> {
@@ -167,10 +135,4 @@ pub fn auth_request(
     cookies: &CookieJar<'_>,
 ) -> status::Custom<Json<APIResult<()>>> {
     status::Custom(Status::Ok, Json(auth(cookies, config)))
-}
-
-impl From<DatabaseError> for APIError {
-    fn from(value: DatabaseError) -> Self {
-        Self::DatabaseError(format!("{}", value))
-    }
 }

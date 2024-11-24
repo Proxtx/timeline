@@ -1,8 +1,9 @@
 use {
-    crate::Plugin,
+    crate::plugin::PluginTrait,
     serde::{de::DeserializeOwned, Serialize},
     std::fmt,
     tokio::fs::read_to_string,
+    types::external::serde_json,
 };
 
 #[allow(unused)]
@@ -20,7 +21,7 @@ where
 {
     pub async fn load<'a, PluginType>() -> CacheResult<Cache<CacheType>>
     where
-        PluginType: Plugin,
+        PluginType: PluginTrait,
     {
         match read_to_string(format!("cache/{}", PluginType::get_type())).await {
             Ok(str) => {
@@ -42,7 +43,7 @@ where
 
     pub fn modify<PluginType>(&mut self, updater: impl FnOnce(&mut CacheType)) -> CacheResult<()>
     where
-        PluginType: Plugin,
+        PluginType: PluginTrait,
     {
         updater(&mut self.cache);
         self.save::<PluginType>()
@@ -50,7 +51,7 @@ where
 
     pub fn update<PluginType>(&mut self, data: CacheType) -> CacheResult<()>
     where
-        PluginType: Plugin,
+        PluginType: PluginTrait,
     {
         self.cache = data;
         self.save::<PluginType>()?;
@@ -59,7 +60,7 @@ where
 
     pub fn save<PluginType>(&self) -> CacheResult<()>
     where
-        PluginType: Plugin,
+        PluginType: PluginTrait,
     {
         let str = serde_json::to_string(&self.cache)?;
 

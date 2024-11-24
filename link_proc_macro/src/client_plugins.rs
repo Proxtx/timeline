@@ -5,7 +5,7 @@ use syn::{parse_macro_input, ItemStruct};
 
 use crate::available_plugins;
 
-pub fn generate_frontend_plugins(item: TokenStream) -> TokenStream {
+pub fn generate_client_plugins(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemStruct);
 
     let struct_name = &input.ident;
@@ -13,7 +13,7 @@ pub fn generate_frontend_plugins(item: TokenStream) -> TokenStream {
 
     let plugins = available_plugins::get_plugins()
         .into_iter()
-        .map(|v| (v.clone(), format!("client_plugin_{}", v)))
+        .map(|v| (v.clone(), format!("{}_client", v)))
         .collect::<Vec<_>>();
     let av_idents = plugins.iter().map(|v| {
         let ident = Ident::new(&v.0, Span::call_site());

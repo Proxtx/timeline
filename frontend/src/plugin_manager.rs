@@ -1,5 +1,16 @@
 use {
-    client_api::{external::{types::{api::CompressedEvent, available_plugins::AvailablePlugins}, url::Url}, plugin::{IconLocation, PluginData, PluginEventData, PluginTrait}, result::EventResult, style::Style, types::external::serde_json}, dyn_link::client_plugins::Plugins, leptos::View, serde::de::DeserializeOwned, std::{collections::HashMap, fmt}
+    client_api::{
+        external::{
+            types::{api::CompressedEvent, available_plugins::AvailablePlugins},
+        },
+        plugin::{IconLocation, PluginData, PluginEventData, PluginTrait},
+        result::EventResult,
+        style::Style,
+        types::external::serde_json,
+    },
+    dyn_link::client_plugins::Plugins,
+    leptos::View,
+    std::{collections::HashMap},
 };
 
 #[derive(Clone)]
@@ -39,8 +50,14 @@ impl PluginManager {
         self.plugins.get(plugin).unwrap().get_icon()
     }
 
-    pub fn get_events_overview(&self, plugin: &AvailablePlugins, events: &Vec<CompressedEvent>) -> Option<View>
-    {
-        self.plugins.get(plugin).unwrap().get_events_overview(events)
+    pub fn get_events_overview(
+        &self,
+        plugin: &AvailablePlugins,
+        events: &Vec<CompressedEvent>,
+    ) -> Option<View> {
+        self.plugins
+            .get(plugin)
+            .unwrap()
+            .get_events_overview(events)
     }
 }

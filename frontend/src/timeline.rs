@@ -1,10 +1,12 @@
 use {
     crate::api::api_request,
-    client_api::external::types::external::chrono::{DateTime, SubsecRound, TimeDelta, Timelike, Utc},
+    client_api::external::types::{
+        external::chrono::{DateTime, SubsecRound, TimeDelta, Timelike, Utc},
+        timing::{Marker, TimeRange},
+    },
     leptos::*,
     rand::Rng,
     stylers::style,
-    client_api::external::types::timing::{Marker, TimeRange},
 };
 
 #[component]

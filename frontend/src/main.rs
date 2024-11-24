@@ -8,20 +8,24 @@ mod timeline;
 mod wrappers;
 
 use {
-    client_api::api::api_request,
-    client_api::api,
-    client_api::external::types::external::chrono,
-    client_api::external::types::external::chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
+    client_api::{
+        api,
+        api::api_request,
+        external::types::{
+            api::{APIError, APIResult, CompressedEvent, TimelineHostname},
+            available_plugins::AvailablePlugins,
+            external::{
+                chrono,
+                chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
+            },
+            timing::TimeRange,
+        },
+    },
     events_display::{DefaultEventsViewerType, EventDisplay},
     leptos::*,
     leptos_router::*,
     std::{collections::HashMap, str::FromStr},
     stylers::style,
-    client_api::external::types::{
-        api::{APIError, APIResult, CompressedEvent, TimelineHostname},
-        timing::TimeRange,
-        available_plugins::AvailablePlugins
-    },
     wrappers::{Login, StyledView, TitleBar},
 };
 

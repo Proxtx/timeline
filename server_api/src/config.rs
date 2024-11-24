@@ -11,7 +11,7 @@ pub struct Config {
     pub port: u16,
     pub db_connection_string: String,
     pub database: String,
-    pub plugin_config: HashMap<crate::AvailablePlugins, toml::Value>,
+    pub plugin_config: HashMap<types::available_plugins::AvailablePlugins, toml::Value>,
     pub error_report_url: Option<Url>,
     #[cfg(feature = "experiences")]
     pub experiences_url: Url,

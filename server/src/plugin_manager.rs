@@ -1,19 +1,23 @@
 use {
-    crate::{AvailablePlugins, Plugin},
-    futures::{FutureExt, StreamExt},
+    server_api::{
+        external::{
+            futures::{self, FutureExt, StreamExt},
+            tokio::{self, sync::RwLock},
+            types::{api::APIResult, available_plugins::AvailablePlugins, timing::TimeRange},
+        },
+        plugin::PluginTrait,
+    },
     std::{collections::HashMap, pin::Pin, sync::Arc},
-    tokio::sync::RwLock,
-    types::{api::APIResult, timing::TimeRange},
 };
 
-type ThreadedPlugin = Arc<RwLock<Box<dyn Plugin>>>;
+type ThreadedPlugin = Arc<RwLock<Box<dyn PluginTrait>>>;
 type PluginsMap = HashMap<AvailablePlugins, ThreadedPlugin>;
 pub struct PluginManager {
     plugins: PluginsMap,
 }
 
 impl PluginManager {
-    pub fn new(plugins: HashMap<AvailablePlugins, Box<dyn Plugin>>) -> Self {
+    pub fn new(plugins: HashMap<AvailablePlugins, Box<dyn PluginTrait>>) -> Self {
         let plugins: PluginsMap = plugins
             .into_iter()
             .map(|(key, value)| (key, Arc::new(RwLock::new(value))))
