@@ -434,6 +434,7 @@ dependencies = [
  "client_api",
  "experiences_navigator",
  "link_proc_macro",
+ "timeline_plugin_experience_client",
  "timeline_plugin_media_scan_client",
 ]
 
@@ -2380,6 +2381,15 @@ dependencies = [
  "rand",
  "serde",
  "stylers",
+]
+
+[[package]]
+name = "timeline_plugin_experience_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "serde",
 ]
 
 [[package]]

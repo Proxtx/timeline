@@ -1,7 +1,7 @@
 use {
-    std::{fmt::format, path::PathBuf},
+    std::path::PathBuf,
     tokio::{
-        fs::{read_dir, try_exists, write, File},
+        fs::{read_dir, write, File},
         io::AsyncReadExt,
     },
 };

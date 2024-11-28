@@ -123,3 +123,7 @@ impl EventWrapper for (AvailablePlugins, CompressedEvent) {
 
 #[derive(Deserialize, Serialize, Clone)]
 pub struct TimelineHostname(pub String);
+
+#[cfg(feature = "experiences")]
+#[derive(Deserialize, Serialize, Clone)]
+pub struct ExperiencesHostname(pub String);

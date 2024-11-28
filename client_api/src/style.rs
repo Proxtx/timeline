@@ -1,5 +1,7 @@
 use std::fmt;
 
+use leptos::{component, view, Children, IntoView};
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Style {
     Acc1,
@@ -46,5 +48,14 @@ impl fmt::Display for Style {
             }
             Style::Custom(dark_color, _, _) => write!(f, "{}", dark_color),
         }
+    }
+}
+
+#[component]
+pub fn StyledView(children: Children) -> impl IntoView {
+    view! {
+        <div class="view" style="display: flex;flex-direction: column;width: 100%;height: 100%;">
+            {children()}
+        </div>
     }
 }

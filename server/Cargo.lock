@@ -463,6 +463,7 @@ version = "0.1.0"
 dependencies = [
  "link_proc_macro",
  "server_api",
+ "timeline_plugin_experience_server",
  "timeline_plugin_media_scan_server",
 ]
 
@@ -2640,6 +2641,15 @@ checksum = "3f252a68540fde3a3877aeea552b832b40ab9a69e318efd078774a01ddee1ccf"
 dependencies = [
  "num-conv",
  "time-core",
+]
+
+[[package]]
+name = "timeline_plugin_experience_server"
+version = "0.1.0"
+dependencies = [
+ "rocket",
+ "serde",
+ "server_api",
 ]
 
 [[package]]

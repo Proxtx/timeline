@@ -76,18 +76,7 @@ pub fn TitleBar(
     }
 }
 
-#[component]
-pub fn StyledView(children: Children) -> impl IntoView {
-    let stylers_class = style! {
-        .view {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            height: 100%;
-        }
-    };
-    view! { class=stylers_class, <div class="view">{children()}</div> }
-}
+pub use client_api::style::StyledView;
 
 #[component]
 pub fn Login(update_authentication: WriteSignal<i64>) -> impl IntoView {
