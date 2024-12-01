@@ -435,7 +435,15 @@ dependencies = [
  "experiences_navigator",
  "link_proc_macro",
  "timeline_plugin_experience_client",
+ "timeline_plugin_git_client",
+ "timeline_plugin_location_client",
  "timeline_plugin_media_scan_client",
+ "timeline_plugin_notification_client",
+ "timeline_plugin_spotify_client",
+ "timeline_plugin_steam_client",
+ "timeline_plugin_text_client",
+ "timeline_plugin_unify_client",
+ "timeline_plugin_usage_client",
 ]
 
 [[package]]
@@ -2393,11 +2401,85 @@ dependencies = [
 ]
 
 [[package]]
+name = "timeline_plugin_git_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "serde",
+]
+
+[[package]]
+name = "timeline_plugin_location_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "serde",
+]
+
+[[package]]
 name = "timeline_plugin_media_scan_client"
 version = "0.1.0"
 dependencies = [
  "client_api",
  "leptos",
+ "serde",
+]
+
+[[package]]
+name = "timeline_plugin_notification_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "serde",
+]
+
+[[package]]
+name = "timeline_plugin_spotify_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "serde",
+]
+
+[[package]]
+name = "timeline_plugin_steam_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "serde",
+]
+
+[[package]]
+name = "timeline_plugin_text_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "serde",
+]
+
+[[package]]
+name = "timeline_plugin_unify_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "rand",
+ "serde",
+]
+
+[[package]]
+name = "timeline_plugin_usage_client"
+version = "0.1.0"
+dependencies = [
+ "client_api",
+ "leptos",
+ "rand",
  "serde",
 ]
 
@@ -2640,6 +2722,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]
