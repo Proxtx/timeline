@@ -488,7 +488,7 @@ dependencies = [
  "serde",
  "serde_json",
  "stylers",
- "types",
+ "timeline_types",
  "url",
  "web-sys",
 ]
@@ -498,7 +498,7 @@ name = "experiences_types"
 version = "0.1.0"
 dependencies = [
  "serde",
- "types",
+ "timeline_types",
 ]
 
 [[package]]
@@ -2481,6 +2481,13 @@ dependencies = [
  "leptos",
  "rand",
  "serde",
+]
+
+[[package]]
+name = "timeline_types"
+version = "0.1.0"
+dependencies = [
+ "types",
 ]
 
 [[package]]
