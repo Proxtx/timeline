@@ -209,6 +209,7 @@ dependencies = [
  "leptos",
  "types",
  "url",
+ "web-sys",
 ]
 
 [[package]]
@@ -2216,6 +2217,7 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
 ]
 
 [[package]]

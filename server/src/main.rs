@@ -13,12 +13,8 @@ use {
         routes, Request,
     },
     server_api::{
-        config,
-        db,
-        external::{
-            tokio::fs::File,
-            types::api::CompressedEvent,
-        },
+        config, db,
+        external::{tokio::fs::File, types::api::CompressedEvent},
         plugin::PluginData,
     },
     std::{io, sync::Arc},
