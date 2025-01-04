@@ -20,7 +20,8 @@ pub struct PluginManager {
 
 impl PluginManager {
     pub async fn new() -> Self {
-        let plugins = Plugins::init(|_plugin| PluginData {}).await;
+        let mut plugins = Plugins::init(|_plugin| PluginData {}).await;
+        plugins.plugins.insert(AvailablePlugins::error, Box::new(crate::error::Plugin::new(PluginData {}).await));
 
         PluginManager {
             plugins: plugins

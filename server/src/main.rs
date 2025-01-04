@@ -19,7 +19,7 @@ use {
             tokio::fs::File,
             types::{api::CompressedEvent, available_plugins::AvailablePlugins},
         },
-        plugin::PluginData,
+        plugin::{PluginData, PluginTrait},
     },
     std::{io, sync::Arc},
 };
@@ -38,13 +38,26 @@ async fn rocket() -> _ {
             }),
     );
 
-    let plugins = Plugins::init(|plugin| PluginData {
+    let mut plugins = Plugins::init(|plugin| PluginData {
         database: db.clone(),
         config: config.plugin_config.remove(&plugin),
         plugin,
         error_url: config.error_report_url.clone(),
     })
     .await;
+
+    plugins.plugins.insert(
+        AvailablePlugins::error,
+        Box::new(
+            server_api::error::Plugin::new(PluginData {
+                database: db.clone(),
+                config: config.plugin_config.remove(&AvailablePlugins::error),
+                plugin: AvailablePlugins::error,
+                error_url: config.error_report_url.clone(),
+            })
+            .await,
+        ),
+    );
 
     let db_2 = db.clone();
     let error_report_url_2 = config.error_report_url.clone();
