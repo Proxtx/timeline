@@ -14,7 +14,11 @@ use {
     },
     server_api::{
         config, db,
-        external::{tokio::fs::File, types::api::CompressedEvent},
+        error::error_string,
+        external::{
+            tokio::fs::File,
+            types::{api::CompressedEvent, available_plugins::AvailablePlugins},
+        },
         plugin::PluginData,
     },
     std::{io, sync::Arc},
@@ -42,7 +46,15 @@ async fn rocket() -> _ {
     })
     .await;
 
-    let plugin_manager = plugin_manager::PluginManager::new(plugins.plugins);
+    let db_2 = db.clone();
+    let error_report_url_2 = config.error_report_url.clone();
+
+    let plugin_manager = plugin_manager::PluginManager::new(
+        plugins.plugins,
+        Arc::new(move |str: String, plugin: AvailablePlugins| {
+            error_string(db_2.clone(), str, Some(plugin), &error_report_url_2);
+        }),
+    );
 
     let figment = rocket::Config::figment().merge(("port", config.port));
     let mut rocket_state = rocket::custom(figment)
