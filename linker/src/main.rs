@@ -8,6 +8,11 @@ use {
 
 #[tokio::main]
 async fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let enable_frontend = match args.get(1) {
+        Some(v) => v == "enabled",
+        None => true
+    };
     let mut experiences_location = String::new();
     let mut experiences_location_file = File::open("../experiences_location.txt")
         .await
@@ -44,28 +49,38 @@ async fn main() {
         let server_plugin_name = format!("{}_server", plugin_name);
         let client_plugin_name = format!("{}_client", plugin_name);
         server_features_str.push_str(&format!("\"dep:{}\", ", server_plugin_name));
-        client_features_str.push_str(&format!("\"dep:{}\", ", client_plugin_name));
+        if enable_frontend {
+            client_features_str.push_str(&format!("\"dep:{}\", ", client_plugin_name));
+        }
         plugins_str.push_str(&format!("{0} = {{path=\"../plugins/{1}/server\", optional=true}}\n", server_plugin_name, plugin_name));
-        plugins_str.push_str(&format!("{0} = {{path=\"../plugins/{1}/client\", optional=true}}\n", client_plugin_name, plugin_name));
+        if enable_frontend {
+            plugins_str.push_str(&format!("{0} = {{path=\"../plugins/{1}/client\", optional=true}}\n", client_plugin_name, plugin_name));
+        }
     }
 
-    str += &format!("server = [{} \"server_api\"]\n", server_features_str);
-    str += &format!("client = [{} \"client_api\"]\n[dependencies]\n", client_features_str);
-
+    if enable_frontend {
+        str += "experiences = [\"dep:experiences_navigator\"]\n";
+        str += &format!("client = [{} \"client_api\"]\n", client_features_str);
+    }
+    str += &format!("server = [{} \"server_api\"]\n[dependencies]\n", server_features_str);
     str += &plugins_str;
 
-    str += &format!(
-        "\n
-        experiences_navigator = {{path = \"{}\", optional = true}}
-        \n",
-        experiences_directory
-            .join("experiences_navigator")
-            .display(),
-    );
+    if enable_frontend {
+        str += &format!(
+            "\n
+            experiences_navigator = {{path = \"{}\", optional = true}}
+            \n",
+            experiences_directory
+                .join("experiences_navigator")
+                .display(),
+        );
+    }
 
     str += "link_proc_macro = {path = \"../link_proc_macro/\"}\n";
 
-    str += "client_api = {path = \"../client_api\", optional=true}\n";
+    if enable_frontend {
+        str += "client_api = {path = \"../client_api\", optional=true}\n";
+    }
     str += "server_api = {path = \"../server_api\", optional=true}\n";
 
     write("../link/Cargo.toml", str)

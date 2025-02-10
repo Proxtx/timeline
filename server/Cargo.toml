@@ -14,3 +14,6 @@ serde = { version = "1.0.215", features = ["derive"] }
 dyn_link = { path = "../link/", features = ["server"] }
 server_api = { path = "../server_api/" }
 rocket = { version = "0.5.1", features = ["json"] }
+
+[toolchain]
+channel = "nightly"

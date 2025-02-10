@@ -1,9 +1,14 @@
-use std::fs::read_dir;
+use std::{
+    fs::{read_dir, File},
+    io::Read,
+};
 
-use proc_macro::TokenStream;
-use proc_macro2::Ident;
-use quote::quote;
-use syn::{parse_macro_input, ItemEnum};
+use {
+    proc_macro::TokenStream,
+    proc_macro2::Ident,
+    quote::quote,
+    syn::{parse_macro_input, ItemEnum},
+};
 
 pub fn generate_available_plugins(item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemEnum);
@@ -34,12 +39,21 @@ pub fn generate_available_plugins(item: TokenStream) -> TokenStream {
 }
 
 pub fn get_plugins() -> Vec<String> {
-    let dir = read_dir("../plugins/").expect("Unable to read plugins directory");
-    dir.map(|v| {
-        v.expect("Unable to read entry in the plugins directory")
-            .file_name()
-            .into_string()
-            .expect("Unable to convert plugin name to rust string")
-    })
-    .collect()
+    match File::open("./plugins.txt") {
+        Ok(mut file) => {
+            let mut plugins = String::new();
+            file.read_to_string(&mut plugins).unwrap();
+            plugins.trim().split(",").map(|v| v.to_string()).collect()
+        }
+        Err(_e) => {
+            let dir = read_dir("../plugins/").expect(&format!("Unable to read plugins directory: {:?} {:?}", std::env::current_dir(), std::process::Command::new("ls").output().unwrap()));
+            dir.map(|v| {
+                v.expect("Unable to read entry in the plugins directory")
+                    .file_name()
+                    .into_string()
+                    .expect("Unable to convert plugin name to rust string")
+            })
+            .collect()
+        }
+    }
 }
