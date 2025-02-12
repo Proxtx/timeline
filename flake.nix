@@ -21,6 +21,7 @@
       in {
         packages.default = config: let
           plugins = config.plugins;
+          experiencesEnabled = config.experiencesEnabled;
           experiences = builtins.fetchGit config.experiences;
           workspace = ''workspace = {resolver = \"2\", members = [\"timeline/server\",\"timeline/server_api\",\"timeline/link\",\"timeline/types\",\"timeline/link_proc_macro\",${builtins.concatStringsSep "," (builtins.map (plugin: "\\\"timeline/plugins/${plugin.name}/server\\\"") plugins)}]}'';
           plugin_repos = builtins.concatStringsSep "\n" (builtins.map (plugin: "cp -r ${(builtins.fetchGit plugin.git).outPath}/ $out/timeline/plugins/${plugin.name}") plugins);
@@ -72,7 +73,7 @@
             pkgs.openssl
             linker.packages.${system}.default
           ];
-          cargoExtraArgs = "";
+          cargoExtraArgs = if experiencesEnabled then  "--features=experiences" else "";
           # cargoLock = "${modifiedSource}/timeline/server/Cargo.lock";
         };
       }) // {
