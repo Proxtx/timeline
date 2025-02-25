@@ -29,3 +29,7 @@ dyn_link = { path = "../link/", features = ["client"] }
 client_api = { path = "../client_api" }
 serde = { version = "1.0.215", features = ["derive"] }
 leptos = { version = "0.6.14", features = ["csr", "nightly"] }
+
+[profile.release]
+lto = true
+opt-level = 'z'

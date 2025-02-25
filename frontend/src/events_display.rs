@@ -288,6 +288,7 @@ pub fn EventDisplay<T: EventWrapper>(
             font-family: Rubik;
             font-size: unset;
             width: 100%;
+            align-items: flex-start;
         }
 
         .slideOverOuterWrapper {
