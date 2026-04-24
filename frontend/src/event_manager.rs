@@ -1,193 +1,66 @@
-use {
-    crate::{events_display::EventsViewer, plugin_manager::PluginManager, StyledView},
-    client_api::{
-        api::api_request,
-        external::types::{
-            api::CompressedEvent, available_plugins::AvailablePlugins, timing::TimeRange,
-        },
-    },
-    leptos::*,
-    std::{collections::HashMap, sync::Arc},
-    timeline_frontend_lib::events_display::DefaultWithAvailablePluginsEventsViewerType,
-};
+//! Event fetching + filtering to a time range, then hand off to events_display.
 
-#[cfg(feature = "experiences")]
-use dyn_link::experiences_navigator_lib::{
-    experiences_types::types::ExperiencesHostname, navigator::StandaloneNavigator, wrappers::Band,
-};
+use std::collections::HashMap;
+
+use leptos::prelude::*;
+
+use types::api::CompressedEvent;
+use types::timing::TimeRange;
+
+use crate::api::api_request;
+use crate::events_display::EventsViewer;
+use crate::plugin_manager::PluginManager;
+
+type EventMap = HashMap<String, Vec<CompressedEvent>>;
 
 #[component]
 pub fn EventManager(
-    #[prop(into)] available_range: MaybeSignal<TimeRange>,
-    #[prop(into)] current_range: MaybeSignal<TimeRange>,
-    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
+    #[prop(into)] available_range: Signal<TimeRange>,
+    #[prop(into)] current_range: Signal<TimeRange>,
+    #[prop(into)] plugin_manager: Signal<PluginManager>,
 ) -> impl IntoView {
-    let experiences_url_error = create_resource(
-        || {},
-        |_| async {
-            let mut res: Option<client_api::types::api::APIError> = None;
-            #[cfg(feature = "experiences")]
-            {
-                res = match api_request::<String, _>("/experiences_url", &()).await {
-                    Ok(v) => {
-                        provide_context(ExperiencesHostname(v));
-                        None
-                    }
-                    Err(e) => Some(e),
-                };
-            }
-            res
-        },
-    );
+    let available_events = LocalResource::new(move || {
+        let range = available_range.get();
+        async move {
+            leptos::logging::log!("reloading events");
+            api_request::<EventMap, _>("/events", &range).await
+        }
+    });
 
-    let available_events = create_resource(available_range, |range| async move {
-        logging::log!("reloading all events");
-        api_request::<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _>("/events", &range).await
+    let filtered = Memo::new(move |_| -> Option<Result<EventMap, String>> {
+        let inner = available_events.get()?;
+        match inner.clone() {
+            Ok(all) => {
+                let range = current_range.get();
+                let out: EventMap = all
+                    .into_iter()
+                    .map(|(plugin, events)| {
+                        let kept: Vec<CompressedEvent> = events
+                            .into_iter()
+                            .filter(|e| range.overlap_timing(&e.time))
+                            .collect();
+                        (plugin, kept)
+                    })
+                    .filter(|(_, e)| !e.is_empty())
+                    .collect();
+                Some(Ok(out))
+            }
+            Err(e) => Some(Err(e.to_string())),
+        }
     });
 
     view! {
-        {move || {
-            let current_range = current_range.clone();
-            let plugin_manager = plugin_manager.clone();
-            match experiences_url_error() {
-                Some(experiences_url_error) => {
-                    match experiences_url_error {
-                        None => {
-                            view! {
-                                {move || match available_events() {
-                                    Some(v) => {
-                                        match v {
-                                            Ok(v) => {
-                                                view! {
-                                                    <DisplayCurrentEvents
-                                                        available_events=v
-                                                        current_range=current_range.clone()
-                                                        plugin_manager=plugin_manager.clone()
-                                                    />
-                                                }
-                                                    .into_view()
-                                            }
-                                            Err(e) => {
-                                                {
-                                                    view! {
-                                                        <div class="errorWrapper">
-
-                                                            {move || {
-                                                                format!("Error loading events display selector: {}", e)
-                                                            }}
-
-                                                        </div>
-                                                    }
-                                                }
-                                                    .into_view()
-                                            }
-                                        }
-                                    }
-                                    None => {
-                                        view! { <div class="infoWrapper">Loading</div> }.into_view()
-                                    }
-                                }}
-                            }
-                                .into_view()
-                        }
-                        Some(e) => {
-                            view! {
-                                <div class="errorWrapper">
-                                    Error loading Experiences Url: {e.to_string()}
-                                </div>
-                            }
-                                .into_view()
-                        }
-                    }
-                }
-                None => view! { <div class="infoWrapper">Loading</div> }.into_view(),
-            }
+        {move || match filtered.get() {
+            Some(Ok(map)) => view! {
+                <EventsViewer
+                    events=Signal::derive(move || map.clone())
+                    plugin_manager=plugin_manager
+                />
+            }.into_any(),
+            Some(Err(e)) => view! {
+                <div class="errorWrapper">{format!("Error loading events: {}", e)}</div>
+            }.into_any(),
+            None => view! { <div class="infoWrapper">Loading...</div> }.into_any(),
         }}
-    }
-}
-
-#[component]
-fn DisplayCurrentEvents(
-    #[prop(into)] available_events: MaybeSignal<HashMap<AvailablePlugins, Vec<CompressedEvent>>>,
-    #[prop(into)] current_range: MaybeSignal<TimeRange>,
-    #[prop(into)] plugin_manager: MaybeSignal<PluginManager>,
-) -> impl IntoView {
-    let current_events = create_memo(move |_| {
-        available_events()
-            .into_iter()
-            .map(|(plugin, events)| {
-                (
-                    plugin.clone(),
-                    events
-                        .into_iter()
-                        .filter(|current_event| current_range().overlap_timing(&current_event.time))
-                        .map(|v| (plugin.clone(), v))
-                        .collect::<Vec<(AvailablePlugins, CompressedEvent)>>(),
-                )
-            })
-            .filter(|(_plugin, data)| !data.is_empty())
-            .collect::<HashMap<AvailablePlugins, Vec<(AvailablePlugins, CompressedEvent)>>>()
-    });
-
-    let mut slide_over: Option<DefaultWithAvailablePluginsEventsViewerType> = None;
-
-    #[cfg(feature = "experiences")]
-    {
-        slide_over = Some(|event, close_callback| {
-            let selected_experience = create_rw_signal(None);
-            let close_callback = Arc::new(close_callback);
-            let close_callback_2 = close_callback.clone();
-
-            view! {
-                <StyledView>
-                    <Band click=Callback::new(move |_| {
-                        close_callback_2();
-                    })>
-                        <b>Close</b>
-                    </Band>
-                    <StandaloneNavigator selected_experience=selected_experience />
-                    <Band click=Callback::new(move |_| {
-                        spawn_local({
-                            let close_callback = close_callback.clone();
-                            let selected_experience = selected_experience();
-                            let event = event.clone();
-                            async move {
-                                close_callback();
-                                if let Err(e) = dyn_link::experiences_navigator_lib::api::api_request::<
-                                    String,
-                                    _,
-                                >(
-                                        &format!(
-                                            "/experience/{}/append_event",
-                                            selected_experience.unwrap(),
-                                        ),
-                                        &event,
-                                    )
-                                    .await
-                                {
-                                    window()
-                                        .alert_with_message(
-                                            &format!("Unable to append event to experience: {}", e),
-                                        )
-                                        .unwrap();
-                                }
-                            }
-                        })
-                    })>
-                        <b>Insert</b>
-                    </Band>
-                </StyledView>
-            }
-            .into_view()
-        });
-    }
-
-    type AVCTuple = (AvailablePlugins, CompressedEvent);
-
-    view! {
-        <EventsViewer<
-        AVCTuple,
-        DefaultWithAvailablePluginsEventsViewerType,
-    > events=current_events plugin_manager=plugin_manager.clone() slide_over=slide_over />
     }
 }

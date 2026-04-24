@@ -31,19 +31,12 @@ body {
   background-color: var(--accentColor1);
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+h1, h2, h3, h4, h5, h6 {
   margin: 0;
   padding: 0;
 }
 
-.title {
-  color: var(--lightColor);
-}
+/* ---------- shared states ---------- */
 
 .infoWrapper {
   background-color: var(--accentColor1Light);
@@ -53,4 +46,214 @@ h6 {
 .errorWrapper {
   background-color: var(--accentColor2Light);
   padding: var(--contentSpacing);
+}
+
+/* ---------- StyledView ---------- */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- TitleBar ---------- */
+
+.titleBar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  background-color: var(--darkColor);
+  padding-top: calc(var(--contentSpacing) * 3.5);
+  padding-bottom: calc(var(--contentSpacing) * 3.5);
+  gap: calc(var(--contentSpacing) * 1.5);
+}
+
+.titleBarInner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--contentSpacing);
+}
+
+.logo {
+  height: 40px;
+  transition: 500ms;
+  transform: rotate(0deg);
+  cursor: pointer;
+}
+
+.title {
+  color: var(--lightColor);
+}
+
+.subtitle {
+  color: var(--accentColor1);
+  text-decoration: none;
+}
+
+/* ---------- Login ---------- */
+
+.pwdInput {
+  border: none;
+  width: 100%;
+  box-sizing: border-box;
+  background-color: var(--accentColor2);
+  padding: var(--contentSpacing);
+  color: var(--lightColor);
+}
+.pwdInput::placeholder {
+  color: var(--lightColor);
+}
+.pwdInput:focus {
+  outline: none;
+}
+
+/* ---------- Date select on Timeline page ---------- */
+
+.dateSelect {
+  padding: var(--contentSpacing);
+  background-color: var(--accentColor1);
+  color: var(--lightColor);
+  width: 100%;
+  border: none;
+  box-sizing: border-box;
+  letter-spacing: 1px;
+  font-family: Rubik;
+  text-align: center;
+}
+.dateSelect:focus {
+  outline: none;
+}
+.dateSelectWrapper {
+  max-height: 0;
+  transition: 0.1s;
+  overflow: hidden;
+}
+
+/* ---------- TimelineBar ---------- */
+
+@keyframes loading {
+  0%   { opacity: 80%; }
+  50%  { opacity: 100%; }
+  100% { opacity: 80%; }
+}
+
+.timelineBar {
+  background-color: var(--accentColor1Light);
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  height: 102px;
+}
+.timelineBar.loading {
+  animation: loading 2s infinite;
+}
+
+@keyframes popIn {
+  0%   { transform: translate(-50%, -50%) scale(0); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.circle {
+  position: absolute;
+  background-color: #006ba39c;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: popIn 1s;
+}
+
+.pointer {
+  position: absolute;
+  transform: translateX(-50%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ---------- App selector ---------- */
+
+.appSelector {
+  --padding: calc(var(--contentSpacing) * 1.5);
+  height: calc(50px + 2 * var(--padding));
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: safe center;
+  padding: var(--padding);
+  background-color: var(--darkColor);
+  box-sizing: border-box;
+  overflow: hidden;
+  overflow-x: auto;
+  gap: var(--contentSpacing);
+}
+
+.appIcon {
+  width: 50px;
+  height: 50px;
+  z-index: 1;
+  position: relative;
+  cursor: pointer;
+}
+
+.indicator {
+  background-color: red;
+  width: 5px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 0%;
+  transition: 0.2s;
+  transform: translateX(-50%);
+}
+
+.iconWrap {
+  position: relative;
+  height: 100%;
+}
+
+/* ---------- Events list ---------- */
+
+.eventsList {
+  flex: 1 0;
+  transition: 0.2s;
+  overflow: auto;
+}
+
+.eventRow {
+  position: relative;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.eventRow:first-child {
+  border-top: none !important;
+}
+
+.eventHeader {
+  color: var(--lightColor);
+  padding: calc(var(--contentSpacing) * 0.7);
+  display: flex;
+  flex-direction: column;
+  background: none;
+  border: none;
+  font-family: Rubik;
+  font-size: unset;
+  width: 100%;
+  align-items: flex-start;
+  text-align: left;
+  cursor: pointer;
+}
+
+.eventBody {
+  width: 100%;
+  padding: var(--contentSpacing);
+  box-sizing: border-box;
+}
+
+.pluginHost {
+  width: 100%;
+  display: block;
 }

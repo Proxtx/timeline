@@ -1,102 +1,57 @@
-use {
-    client_api::external::types::external::chrono::Utc,
-    leptos::{wasm_bindgen::JsCast, *},
-    stylers::style,
-    web_sys::MouseEvent,
-};
+//! Re-usable layout widgets. Was a stylers-scoped module; now uses plain
+//! classes defined in `style.css`.
+
+use chrono::Utc;
+use leptos::prelude::*;
+use wasm_bindgen::JsCast;
+
+#[component]
+pub fn StyledView(children: Children) -> impl IntoView {
+    view! { <div class="view">{children()}</div> }
+}
 
 #[component]
 pub fn TitleBar(
-    #[prop(into, default=None.into())] subtitle: MaybeSignal<Option<String>>,
-    #[prop(into, default=Callback::new(|_| {}))] subtitle_click_callback: Callback<MouseEvent, ()>,
+    #[prop(into, optional)] subtitle: Signal<Option<String>>,
+    #[prop(into, optional)] on_subtitle_click: Option<Callback<web_sys::MouseEvent>>,
 ) -> impl IntoView {
-    let style = style! {
-        .wrapper {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            flex-direction: column;
-            background-color: var(--darkColor);
-            --padding: calc(var(--contentSpacing) * 3.5);
-            padding-top: var(--padding);
-            padding-bottom: var(--padding);
-            gap: calc(var(--contentSpacing) * 1.5);
-        }
-
-        .titleWrapper {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            gap: var(--contentSpacing);
-        }
-
-        .logo {
-            height: 40px;
-            transition: 500ms;
-            transform: rotate(0deg);
-        }
-
-        .subtitle {
-            color: var(--accentColor1);
-            text-decoration: none;
+    let click = move |ev: web_sys::MouseEvent| {
+        if let Some(cb) = on_subtitle_click.as_ref() {
+            cb.run(ev);
         }
     };
 
-    view! { class=style,
-        <div class="wrapper">
-            <div class="titleWrapper">
+    view! {
+        <div class="titleBar">
+            <div class="titleBarInner">
                 <img
                     src="/icons/logo_transparent.png"
                     class="logo"
-                    on:click=|v| {
-                        event_target::<web_sys::HtmlElement>(&v)
-                            .style()
-                            .set_property("transform", "rotate(360deg)")
-                            .unwrap();
-                        let _ = leptos::window().location().reload();
+                    on:click=move |ev| {
+                        if let Some(el) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlElement>().ok()) {
+                            let _ = el.style().set_property("transform", "rotate(360deg)");
+                        }
+                        if let Some(win) = web_sys::window() {
+                            let _ = win.location().reload();
+                        }
                     }
                 />
-
                 <h1 class="title">Timeline</h1>
             </div>
-            {move || match subtitle() {
-                Some(v) => {
-                    view! { class=style,
-                        <a href="javascript:" class="subtitle" on:click=subtitle_click_callback>
-                            {v}
-                        </a>
-                    }
-                        .into_view()
-                }
-                None => view! {}.into_view(),
+            {move || {
+                subtitle.get().map(|text| view! {
+                    <a href="javascript:" class="subtitle" on:click=click>
+                        {text}
+                    </a>
+                })
             }}
-
         </div>
     }
 }
 
-pub use client_api::style::StyledView;
-
 #[component]
 pub fn Login(update_authentication: WriteSignal<i64>) -> impl IntoView {
-    let css = style! {
-        .pwdInput {
-            border: none;
-            width: 100%;
-            box-sizing: border-box;
-            background-color: var(--accentColor2);
-            padding: var(--contentSpacing);
-            color: var(--lightColor);
-        }
-        .pwdInput::placeholder{
-            color: var(--lightColor);
-        }
-        .pwdInput:focus{
-            outline: none;
-        }
-    };
-    view! { class=css,
+    view! {
         <div class="errorWrapper">
             <h3>Login</h3>
             <br />
@@ -105,23 +60,26 @@ pub fn Login(update_authentication: WriteSignal<i64>) -> impl IntoView {
                 type="password"
                 placeholder="Password"
                 on:change=move |e| {
-                    set_password_cookie(event_target_value(&e));
-                    update_authentication(Utc::now().timestamp_millis());
+                    let value = event_target_value(&e);
+                    set_password_cookie(value);
+                    update_authentication.set(Utc::now().timestamp_millis());
                 }
             />
-
         </div>
     }
 }
 
 fn set_password_cookie(password: String) {
-    let html_doc: web_sys::HtmlDocument = document().dyn_into().unwrap();
+    let Some(doc) = web_sys::window().and_then(|w| w.document()) else {
+        return;
+    };
+    let Ok(html_doc) = doc.dyn_into::<web_sys::HtmlDocument>() else {
+        return;
+    };
     let mut cookie = cookie::Cookie::new("pwd", password);
     cookie.set_path("/");
-    html_doc
-        .set_cookie(&format!(
-            "{}; expires=Fri, 31 Dec 9999 23:59:59 GMT; SameSite=None; Secure",
-            cookie
-        ))
-        .unwrap();
+    let _ = html_doc.set_cookie(&format!(
+        "{}; expires=Fri, 31 Dec 9999 23:59:59 GMT; SameSite=None; Secure",
+        cookie
+    ));
 }

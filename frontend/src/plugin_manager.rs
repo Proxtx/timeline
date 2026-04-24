@@ -1,64 +1,174 @@
-use {
-    client_api::{
-        external::{
-            types::{api::CompressedEvent, available_plugins::AvailablePlugins},
-        },
-        plugin::{IconLocation, PluginData, PluginEventData, PluginTrait},
-        result::EventResult,
-        style::Style,
-        types::external::serde_json,
-    },
-    dyn_link::client_plugins::Plugins,
-    leptos::View,
-    std::{collections::HashMap},
-};
+//! Fetch the server's plugin manifest and mount plugin UIs into shadow roots.
+//!
+//! Plugins ship their Leptos code as a trunk-built bundle under
+//! `/plugin_web/<name>/` on the main server. Each bundle's JS module
+//! exports a `__timeline_plugin_render(host: HTMLElement, ctx: any)` function
+//! that the SDK's `plugin_entry!` macro generates.
 
-#[derive(Clone)]
+use std::collections::HashMap;
+
+use serde::{Deserialize, Serialize};
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+
+use types::api::CompressedEvent;
+
+use crate::api::api_request;
+use crate::style::Style;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginManifest {
+    pub name: String,
+    pub display_name: String,
+    #[serde(default)]
+    pub style: Style,
+    #[serde(default)]
+    pub icon: Option<String>,
+    /// Relative URL inside `/plugin_web/<name>/` of the JS entrypoint.
+    /// Unset → no UI; events render title only.
+    #[serde(default)]
+    pub web_entry: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum RenderMode {
+    Event,
+    Overview,
+    Standalone,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct PluginContext {
+    pub plugin_name: String,
+    pub api_base: String,
+    pub event: CompressedEvent,
+    pub style: Style,
+    pub mode: RenderMode,
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct PluginManager {
-    plugins: HashMap<AvailablePlugins, std::rc::Rc<Box<dyn PluginTrait>>>,
+    plugins: HashMap<String, PluginManifest>,
 }
 
 impl PluginManager {
-    pub async fn new() -> Self {
-        let mut plugins = Plugins::init(|_plugin| PluginData {}).await;
-        plugins.plugins.insert(AvailablePlugins::error, Box::new(crate::error::Plugin::new(PluginData {}).await));
-
-        PluginManager {
-            plugins: plugins
-                .plugins
-                .into_iter()
-                .map(|(k, v)| (k, std::rc::Rc::new(v)))
-                .collect(),
+    pub async fn load() -> Self {
+        match api_request::<Vec<PluginManifest>, ()>("/plugins", &()).await {
+            Ok(v) => {
+                let plugins = v.into_iter().map(|m| (m.name.clone(), m)).collect();
+                PluginManager { plugins }
+            }
+            Err(_) => PluginManager::default(),
         }
     }
 
-    pub fn get_component(
-        &self,
-        plugin: &AvailablePlugins,
-        data: &serde_json::Value,
-    ) -> EventResult<impl FnOnce() -> View> {
+    pub fn names(&self) -> Vec<String> {
+        let mut v: Vec<_> = self.plugins.keys().cloned().collect();
+        v.sort();
+        v
+    }
+
+    pub fn get(&self, name: &str) -> Option<&PluginManifest> {
+        self.plugins.get(name)
+    }
+
+    pub fn style(&self, name: &str) -> Style {
         self.plugins
-            .get(plugin)
-            .unwrap()
-            .get_component(PluginEventData { data })
+            .get(name)
+            .map(|m| m.style.clone())
+            .unwrap_or_default()
     }
 
-    pub fn get_style(&self, plugin: &AvailablePlugins) -> Style {
-        self.plugins.get(plugin).unwrap().get_style()
-    }
-
-    pub fn get_icon(&self, plugin: &AvailablePlugins) -> IconLocation {
-        self.plugins.get(plugin).unwrap().get_icon()
-    }
-
-    pub fn get_events_overview(
-        &self,
-        plugin: &AvailablePlugins,
-        events: &Vec<CompressedEvent>,
-    ) -> Option<View> {
+    pub fn display_name(&self, name: &str) -> String {
         self.plugins
-            .get(plugin)
-            .unwrap()
-            .get_events_overview(events)
+            .get(name)
+            .map(|m| m.display_name.clone())
+            .unwrap_or_else(|| name.to_string())
     }
+
+    pub fn icon_url(&self, name: &str) -> String {
+        if let Some(m) = self.plugins.get(name) {
+            if let Some(icon) = &m.icon {
+                if icon.starts_with('/') || icon.starts_with("http") {
+                    return icon.clone();
+                }
+                return format!("/api/plugin/{}/{}", name, icon.trim_start_matches('/'));
+            }
+        }
+        format!("/api/icon/{}", name)
+    }
+
+    /// Mount a plugin UI into the shadow root of `host`. If the plugin has
+    /// no `web_entry`, or the dynamic import fails, a fallback title is
+    /// shown instead.
+    pub async fn mount(&self, plugin_name: &str, host: web_sys::HtmlElement, event: CompressedEvent) {
+        let manifest = match self.plugins.get(plugin_name).cloned() {
+            Some(m) => m,
+            None => {
+                render_fallback(&host, &format!("Unknown plugin: {}", plugin_name));
+                return;
+            }
+        };
+
+        let Some(entry) = manifest.web_entry.clone() else {
+            render_fallback(&host, &event.title);
+            return;
+        };
+
+        let url = format!(
+            "/plugin_web/{}/{}",
+            manifest.name,
+            entry.trim_start_matches('/')
+        );
+
+        let ctx = PluginContext {
+            plugin_name: manifest.name.clone(),
+            api_base: format!("/api/plugin/{}", manifest.name),
+            event: event.clone(),
+            style: manifest.style.clone(),
+            mode: RenderMode::Event,
+        };
+
+        match dynamic_import_render(&url, &host, &ctx).await {
+            Ok(()) => {}
+            Err(e) => {
+                leptos::logging::warn!(
+                    "plugin {} mount failed: {:?} (falling back to title only)",
+                    manifest.name,
+                    e
+                );
+                render_fallback(&host, &event.title);
+            }
+        }
+    }
+}
+
+/// Dynamic `import()` of the plugin module, then call the exported
+/// `__timeline_plugin_render(host, ctx)`.
+async fn dynamic_import_render(
+    url: &str,
+    host: &web_sys::HtmlElement,
+    ctx: &PluginContext,
+) -> Result<(), JsValue> {
+    // Using eval() for the native `import()` operator. wasm-bindgen has no
+    // direct binding; `js_sys::Function::call*(new Function("url", "return import(url)"))`
+    // is the common workaround.
+    let importer = js_sys::Function::new_with_args("url", "return import(url);");
+    let promise = importer
+        .call1(&JsValue::NULL, &JsValue::from_str(url))?
+        .dyn_into::<js_sys::Promise>()?;
+    let module = wasm_bindgen_futures::JsFuture::from(promise).await?;
+
+    let render_fn = js_sys::Reflect::get(&module, &JsValue::from_str("__timeline_plugin_render"))?
+        .dyn_into::<js_sys::Function>()
+        .map_err(|_| JsValue::from_str("plugin module missing __timeline_plugin_render"))?;
+
+    let ctx_value = serde_wasm_bindgen::to_value(ctx).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    render_fn.call2(&JsValue::NULL, host, &ctx_value)?;
+    Ok(())
+}
+
+fn render_fallback(host: &web_sys::HtmlElement, title: &str) {
+    host.set_inner_text(title);
 }

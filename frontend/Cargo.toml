@@ -1,35 +1,54 @@
 [package]
 name = "timeline_frontend"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-[build-dependencies]
-stylers = "1.0.0-alpha"
+[dependencies]
+types = { path = "../types", features = ["client"] }
 
-[features]
-experiences = ["dyn_link/experiences", "client_api/experiences"]
+leptos = { version = "0.8", features = ["csr"] }
+leptos_router = { version = "0.8" }
 
-[lib]
-name = "timeline_frontend_lib"
-path = "src/lib.rs"
+chrono = { version = "0.4", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde-wasm-bindgen = "0.6"
+
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "CustomEvent",
+    "Document",
+    "DomRect",
+    "DomRectReadOnly",
+    "Element",
+    "HtmlDocument",
+    "HtmlElement",
+    "HtmlInputElement",
+    "Location",
+    "Node",
+    "ResizeObserver",
+    "ResizeObserverEntry",
+    "ShadowRoot",
+    "ShadowRootInit",
+    "ShadowRootMode",
+    "Touch",
+    "TouchEvent",
+    "TouchList",
+    "Window",
+] }
+
+gloo-net = { version = "0.6", features = ["json"] }
+gloo-events = "0.2"
+
+cookie = "0.18"
+console_error_panic_hook = "0.1"
 
 [[bin]]
 name = "timeline_frontend_bin"
 path = "src/main.rs"
 
-[dependencies]
-console_error_panic_hook = "0.1.7"
-cookie = "0.18.0"
-leptos-use = "0.12.0"
-leptos_router = { version = "0.6.14", features = ["csr"] }
-rand = "0.8.5"
-stylers = "1.0.0-alpha"
-dyn_link = { path = "../link/", features = ["client"] }
-client_api = { path = "../client_api" }
-serde = { version = "1.0.215", features = ["derive"] }
-leptos = { version = "0.6.14", features = ["csr", "nightly"] }
-
 [profile.release]
 lto = true
-opt-level = 'z'
+opt-level = "z"

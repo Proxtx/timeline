@@ -1,52 +1,49 @@
-#![feature(let_chains)]
-
-mod error;
+mod api;
 mod event_manager;
 mod events_display;
 mod plugin_manager;
-mod timeline;
+mod style;
+mod timeline_view;
 mod wrappers;
 
-use {
-    client_api::{
-        api,
-        api::api_request,
-        external::types::{
-            api::{APIError, APIResult, CompressedEvent, TimelineHostname},
-            available_plugins::AvailablePlugins,
-            external::{
-                chrono,
-                chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc},
-            },
-            timing::TimeRange,
-        },
-    },
-    events_display::{DefaultEventsViewerType, EventDisplay},
-    leptos::*,
-    leptos_router::*,
-    std::{collections::HashMap, str::FromStr},
-    stylers::style,
-    wrappers::{Login, StyledView, TitleBar},
-};
+use std::str::FromStr;
+
+use chrono::{DateTime, Days, Local, NaiveDate, NaiveTime, TimeDelta, Utc};
+use leptos::prelude::*;
+use leptos_router::components::{Route, Router, Routes};
+use leptos_router::hooks::{use_navigate, use_params};
+use leptos_router::params::Params;
+use leptos_router::{path, NavigateOptions};
+use types::api::{APIError, CompressedEvent};
+use types::timing::TimeRange;
+
+use crate::api::{api_request, TimelineHostname};
+use crate::event_manager::EventManager;
+use crate::events_display::{DisplayWithDay, EventsViewer};
+use crate::plugin_manager::PluginManager;
+use crate::timeline_view::TimelineBar;
+use crate::wrappers::{Login, StyledView, TitleBar};
 
 fn main() {
     console_error_panic_hook::set_once();
-    mount_to_body(|| view! { <MainView /> })
+    leptos::mount::mount_to_body(|| view! { <MainView /> });
 }
 
 #[component]
 fn MainView() -> impl IntoView {
-    provide_context(TimelineHostname(leptos::window().origin()));
+    let origin = web_sys::window()
+        .map(|w| w.origin())
+        .unwrap_or_default();
+    provide_context(TimelineHostname(origin));
 
     view! {
         <Router>
-            <Routes>
-                <Route path="/timeline/:date" view=Timeline />
-                <Route path="/timeline" view=Timeline />
-                <Route path="/" view=Redirect />
-                <Route path="*not_found" view=NotFound />
-                <Route path="/event/latest/exclude/:exclude" view=LatestEvent />
-                <Route path="/event/latest" view=LatestEvent />
+            <Routes fallback=|| view! { <NotFound /> }>
+                <Route path=path!("/timeline/:date") view=Timeline />
+                <Route path=path!("/timeline") view=Timeline />
+                <Route path=path!("/event/latest/exclude/:exclude") view=LatestEvent />
+                <Route path=path!("/event/latest") view=LatestEvent />
+                <Route path=path!("/") view=Redirect />
             </Routes>
         </Router>
     }
@@ -56,7 +53,7 @@ fn MainView() -> impl IntoView {
 fn NotFound() -> impl IntoView {
     view! {
         <StyledView>
-            <TitleBar subtitle=Some("404 - Not Found".to_string()) />
+            <TitleBar subtitle=Signal::derive(|| Some("404 — Not Found".to_string())) />
             <div class="errorWrapper">Was unable to find the page you are looking for.</div>
         </StyledView>
     }
@@ -64,178 +61,32 @@ fn NotFound() -> impl IntoView {
 
 #[component]
 fn Redirect() -> impl IntoView {
-    use_navigate()("/timeline/", NavigateOptions::default());
-    view! { <div class="intoWrapper">"Redirecting"</div> }
+    let navigate = use_navigate();
+    Effect::new(move |_| {
+        navigate("/timeline", NavigateOptions::default());
+    });
+    view! { <div class="infoWrapper">Redirecting</div> }
 }
 
-#[derive(Params, PartialEq, Clone)]
-struct LatestParams {
-    exclude: Option<String>,
-}
+// ---------------- /timeline[/:date] ----------------
 
-#[component]
-fn LatestEvent() -> impl IntoView {
-    let style = style! {
-        .wrapper {
-            flex: 1 0;
-            transition: 0.2s;
-            overflow: auto;
-        }
-    };
-
-    let (range, _write_range) = create_signal(TimeRange {
-        end: Utc::now(),
-        start: Utc::now()
-            .checked_sub_signed(chrono::TimeDelta::try_hours(1).unwrap())
-            .unwrap(),
-    });
-    let (last_authentication_attempt, write_last_authentication_attempt) =
-        create_signal(Utc::now().timestamp_millis());
-    let events = create_resource(
-        move || (range(), last_authentication_attempt()),
-        |(range, _)| async move {
-            api_request::<HashMap<AvailablePlugins, Vec<CompressedEvent>>, _>("/events", &range)
-                .await
-        },
-    );
-
-    let plugin_manager =
-        create_action(|_: &()| async { plugin_manager::PluginManager::new().await });
-    plugin_manager.dispatch(());
-
-    let params = use_params::<LatestParams>();
-    let exclude = create_memo(move |_| match params() {
-        Ok(v) => v
-            .exclude
-            .unwrap_or_default()
-            .split(",")
-            .map(|v| v.into())
-            .collect::<Vec<String>>(),
-        Err(_e) => vec![],
-    });
-
-    let current_event = create_memo(move |_| match events() {
-        Some(v) => match v {
-            Ok(v) => {
-                let mut newest_event: Option<(AvailablePlugins, CompressedEvent)> = None;
-                for (plugin, events) in v.into_iter() {
-                    if exclude().contains(&plugin.to_string()) {
-                        continue;
-                    }
-                    for event in events {
-                        let replace = if let Some(v) = &newest_event {
-                            v.1.time.cmp(&event.time).is_lt()
-                        } else {
-                            true
-                        };
-                        if replace {
-                            newest_event = Some((plugin.clone(), event));
-                        }
-                    }
-                }
-                Some(Ok(newest_event))
-            }
-            Err(e) => Some(Err(e)),
-        },
-        None => None,
-    });
-
-    view! {
-        <StyledView>
-            {move || match (current_event(), plugin_manager.value()()) {
-                (Some(current_event), Some(plugin_manager)) => {
-                    match current_event {
-                        Ok(v) => {
-                            match v {
-                                Some((plugin, event)) => {
-                                    let color = format!("{}", plugin_manager.get_style(&plugin));
-                                    view! { class=style,
-                                        <div class="wrapper" style:background-color=color>
-
-                                            {
-                                                view! {
-                                                    <EventDisplay<
-                                                    CompressedEvent,
-                                                    DefaultEventsViewerType,
-                                                >
-                                                        event=event
-                                                        plugin_manager=plugin_manager
-                                                        plugin=plugin
-                                                        expanded=create_rw_signal(true)
-                                                        slide_over=None
-                                                    />
-                                                }
-                                            }
-
-                                        </div>
-                                    }
-                                        .into_view()
-                                }
-                                None => {
-                                    view! { <div class="infoWrapper">No Event Found</div> }
-                                        .into_view()
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            match e {
-                                APIError::AuthenticationError => {
-                                    view! {
-                                        <Login update_authentication=write_last_authentication_attempt />
-                                    }
-                                        .into_view()
-                                }
-                                e => {
-                                    view! {
-                                        <div class="errorWrapper">
-                                            {move || format!("Error requesting event: {}", e)}
-                                        </div>
-                                    }
-                                        .into_view()
-                                }
-                            }
-                        }
-                    }
-                }
-                _ => view! { <div class="infoWrapper">Loading</div> }.into_view(),
-            }}
-
-        </StyledView>
-    }
-}
-
-#[derive(Params, PartialEq, Clone)]
+#[derive(Params, PartialEq, Clone, Debug)]
 struct TimelineParams {
     date: Option<String>,
 }
 
-impl TimelineParams {
-    pub fn get_range(&self) -> APIResult<TimeRange> {
-        let selected_day = match &self.date {
-            Some(v) => {
-                if v.is_empty() {
-                    only_date_local(Utc::now())
-                } else {
-                    match DateTime::from_str(v) {
-                        Ok(date) => only_date_local(date),
-                        Err(e) => return Err(APIError::Custom(format!("{}", e))),
-                    }
-                }
-            }
-            None => only_date_local(Utc::now()),
-        };
-
-        let next_day = selected_day.checked_add_days(Days::new(1)).unwrap();
-        Ok(TimeRange {
-            start: selected_day,
-            end: next_day,
-        })
-    }
+fn date_from_param(date: &Option<String>) -> Result<DateTime<Utc>, APIError> {
+    let source = match date {
+        None => Utc::now(),
+        Some(v) if v.is_empty() => Utc::now(),
+        Some(v) => DateTime::<Utc>::from_str(v).map_err(|e| APIError::Custom(e.to_string()))?,
+    };
+    Ok(only_date_local(source))
 }
 
-fn only_date_local(date: DateTime<Utc>) -> DateTime<Utc> {
+fn only_date_local(d: DateTime<Utc>) -> DateTime<Utc> {
     DateTime::<Utc>::from(
-        DateTime::<Local>::from(date)
+        DateTime::<Local>::from(d)
             .date_naive()
             .and_hms_opt(0, 0, 0)
             .unwrap()
@@ -246,184 +97,224 @@ fn only_date_local(date: DateTime<Utc>) -> DateTime<Utc> {
 
 #[component]
 fn Timeline() -> impl IntoView {
-    let css = style! {
-        .dateSelect {
-            padding: var(--contentSpacing);
-            background-color: var(--accentColor1);
-            color: var(--lightColor);
-            width: 100%;
-            border: none;
-            box-sizing: border-box;
-            letter-spacing: 1px;
-            font-family: Rubik;
-            text-align: center;
-        }
-        .dateSelect:focus {
-            outline: none;
-        }
-
-        .dateSelectWrapper {
-            max-height: 0px;
-            transition: 0.1s;
-            overflow: hidden;
-        }
-    };
-
-    let (read_current_time, write_current_time) = create_signal::<TimeRange>(TimeRange {
-        start: DateTime::from_timestamp_millis(0).unwrap(),
-        end: DateTime::from_timestamp_millis(0).unwrap(),
-    });
-    let write_time_callback = move |range: TimeRange| write_current_time(range);
-
-    let plugin_manager =
-        create_action(|_: &()| async { plugin_manager::PluginManager::new().await });
-    plugin_manager.dispatch(());
-
     let params = use_params::<TimelineParams>();
-    let range = create_memo(move |_| match params() {
-        Ok(v) => v.get_range(),
-        Err(e) => Err(APIError::Custom(format!("{}", e))),
+
+    let day_range = Memo::new(move |_| -> Result<TimeRange, APIError> {
+        let p = params
+            .get()
+            .map_err(|e| APIError::Custom(e.to_string()))?;
+        let start = date_from_param(&p.date)?;
+        let end = start
+            .checked_add_days(Days::new(1))
+            .ok_or_else(|| APIError::Custom("invalid day overflow".into()))?;
+        Ok(TimeRange { start, end })
     });
 
-    let (date_select_expanded, write_date_select_expanded) = create_signal(false);
+    let current_range = RwSignal::new(TimeRange {
+        start: DateTime::from_timestamp_millis(0).unwrap_or_default(),
+        end: DateTime::from_timestamp_millis(0).unwrap_or_default(),
+    });
 
-    let date_input_parser = move |c| {
-        write_date_select_expanded(false);
-        let value = event_target_value(&c);
-        let date: Vec<_> = value
-            .split('-')
-            .map(|v| v.parse::<u32>().unwrap())
-            .collect();
-        let local_date: DateTime<Local> = NaiveDate::from_ymd_opt(date[0] as i32, date[1], date[2])
-            .unwrap()
-            .and_time(NaiveTime::from_hms_opt(0, 0, 0).unwrap())
-            .and_local_timezone(Local)
-            .unwrap();
-        let utc_date: DateTime<Utc> = DateTime::from(local_date);
-        let navigate = leptos_router::use_navigate();
-        navigate(
-            &format!("/timeline/{}", &utc_date.to_rfc3339()),
-            Default::default(),
-        );
+    Effect::new(move |_| {
+        if let Ok(r) = day_range.get() {
+            current_range.set(TimeRange {
+                start: r.start,
+                end: r.start + TimeDelta::try_hours(1).unwrap_or_default(),
+            });
+        }
+    });
+
+    let plugin_manager_action = Action::new_local(|_: &()| async { PluginManager::load().await });
+    Effect::new(move |_| {
+        if plugin_manager_action.value().get_untracked().is_none() {
+            plugin_manager_action.dispatch(());
+        }
+    });
+    let plugin_manager = Signal::derive(move || {
+        plugin_manager_action.value().get().unwrap_or_default()
+    });
+
+    let last_auth = RwSignal::new(Utc::now().timestamp_millis());
+    let authentication = LocalResource::new(move || {
+        let _ = last_auth.get();
+        async { api_request::<(), _>("/auth", &()).await }
+    });
+
+    let date_select_expanded = RwSignal::new(false);
+
+    view! {
+        <StyledView>
+            {move || match day_range.get() {
+                Ok(day) => {
+                    let on_range_pick = Callback::new(move |r: TimeRange| current_range.set(r));
+                    let day_for_subtitle = day.clone();
+                    let day_for_input = day.clone();
+                    let day_for_bar = day.clone();
+                    let day_for_manager = day.clone();
+                    view! {
+                        <TitleBar
+                            subtitle=Signal::derive(move || Some(
+                                DateTime::<Local>::from(day_for_subtitle.start).format("%d.%m.%Y").to_string()
+                            ))
+                            on_subtitle_click=Callback::new(move |_| {
+                                date_select_expanded.update(|v| *v = !*v);
+                            })
+                        />
+                        <div
+                            class="dateSelectWrapper"
+                            style:max-height=move || if date_select_expanded.get() { "100px" } else { "0px" }
+                        >
+                            <input
+                                class="dateSelect"
+                                type="date"
+                                prop:value=format!("{}", DateTime::<Local>::from(day_for_input.start).format("%Y-%m-%d"))
+                                on:change=move |e| {
+                                    date_select_expanded.set(false);
+                                    handle_date_change(&e);
+                                }
+                                style:color-scheme="dark"
+                            />
+                        </div>
+                        {move || match authentication.get() {
+                            None => view! { <div class="infoWrapper">Loading...</div> }.into_any(),
+                            Some(Err(APIError::AuthenticationError)) => view! {
+                                <Login update_authentication=last_auth.write_only() />
+                            }.into_any(),
+                            Some(Err(e)) => view! {
+                                <div class="errorWrapper">{format!("Authentication error: {}", e)}</div>
+                            }.into_any(),
+                            Some(Ok(_)) => {
+                                let day_bar = day_for_bar.clone();
+                                let day_mgr = day_for_manager.clone();
+                                view! {
+                                    <TimelineBar
+                                        range=Signal::derive(move || day_bar.clone())
+                                        on_range_pick=on_range_pick
+                                    />
+                                    <EventManager
+                                        available_range=Signal::derive(move || day_mgr.clone())
+                                        current_range=Signal::derive(move || current_range.get())
+                                        plugin_manager=plugin_manager
+                                    />
+                                }.into_any()
+                            }
+                        }}
+                    }.into_any()
+                }
+                Err(e) => view! {
+                    <TitleBar subtitle=Signal::derive(|| Some("Error loading Day".to_string())) />
+                    <div class="errorWrapper">{format!("Error loading date: {}", e)}</div>
+                }.into_any()
+            }}
+        </StyledView>
+    }
+}
+
+fn handle_date_change(e: &web_sys::Event) {
+    let value = event_target_value(e);
+    let parts: Vec<i32> = value
+        .split('-')
+        .filter_map(|v| v.parse().ok())
+        .collect();
+    if parts.len() != 3 {
+        return;
+    }
+    let Some(date) = NaiveDate::from_ymd_opt(parts[0], parts[1] as u32, parts[2] as u32) else {
+        return;
     };
+    let Some(naive_time) = NaiveTime::from_hms_opt(0, 0, 0) else {
+        return;
+    };
+    let local = date.and_time(naive_time).and_local_timezone(Local).earliest();
+    let Some(local) = local else { return };
+    let utc: DateTime<Utc> = DateTime::from(local);
+    let navigate = use_navigate();
+    navigate(
+        &format!("/timeline/{}", utc.to_rfc3339()),
+        NavigateOptions::default(),
+    );
+}
 
-    let (last_authentication_attempt, write_last_authentication_attempt) =
-        create_signal(Utc::now().timestamp_millis());
+// ---------------- /event/latest[/exclude/:exclude] ----------------
 
-    let authentication = create_resource(last_authentication_attempt, |_| async move {
-        api::api_request::<(), ()>("/auth", &()).await
+#[derive(Params, PartialEq, Clone, Debug)]
+struct LatestParams {
+    exclude: Option<String>,
+}
+
+#[component]
+fn LatestEvent() -> impl IntoView {
+    provide_context(DisplayWithDay(true));
+
+    let last_auth = RwSignal::new(Utc::now().timestamp_millis());
+
+    let range = RwSignal::new(TimeRange {
+        end: Utc::now(),
+        start: Utc::now() - TimeDelta::try_hours(1).unwrap_or_default(),
+    });
+
+    // Refresh the clock every time we re-authenticate, keeps "latest" fresh.
+    Effect::new(move |_| {
+        let _ = last_auth.get();
+        range.set(TimeRange {
+            end: Utc::now(),
+            start: Utc::now() - TimeDelta::try_hours(1).unwrap_or_default(),
+        });
+    });
+
+    let events_resource = LocalResource::new(move || {
+        let r = range.get();
+        async move {
+            api_request::<std::collections::HashMap<String, Vec<CompressedEvent>>, _>("/events", &r).await
+        }
+    });
+
+    let params = use_params::<LatestParams>();
+    let exclude: Memo<Vec<String>> = Memo::new(move |_| match params.get() {
+        Ok(p) => p
+            .exclude
+            .unwrap_or_default()
+            .split(',')
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+            .collect(),
+        Err(_) => vec![],
+    });
+
+    let plugin_manager_action = Action::new_local(|_: &()| async { PluginManager::load().await });
+    Effect::new(move |_| {
+        if plugin_manager_action.value().get_untracked().is_none() {
+            plugin_manager_action.dispatch(());
+        }
+    });
+    let plugin_manager = Signal::derive(move || {
+        plugin_manager_action.value().get().unwrap_or_default()
     });
 
     view! {
         <StyledView>
-            {move || match range() {
-                Ok(range) => {
-                    write_current_time(TimeRange {
-                        start: range.start,
-                        end: range
-                            .start
-                            .checked_add_signed(TimeDelta::try_hours(1).unwrap())
-                            .unwrap(),
-                    });
-                    let r3 = range.clone();
-                    view! { class=css,
-                        <TitleBar
-                            subtitle=Signal::derive(move || {
-                                Some(
-                                    format!(
-                                        "{}",
-                                        DateTime::<Local>::from(r3.start).format("%d.%m.%Y"),
-                                    ),
-                                )
-                            })
-
-                            subtitle_click_callback=Callback::new(move |_| {
-                                write_date_select_expanded.set(!date_select_expanded())
-                            })
-                        />
-
-                        <div
-                            class="dateSelectWrapper"
-                            style:max-height=move || {
-                                if date_select_expanded() { "100px" } else { "0px" }
-                            }
-                        >
-
-                            <input
-                                class="dateSelect"
-                                on:change=date_input_parser
-                                type="date"
-                                prop:value=move || {
-                                    let local = DateTime::<Local>::from(range.start);
-                                    format!("{}", { local.format("%Y-%m-%d") })
-                                }
-
-                                style:color-scheme="dark"
-                            />
-                        </div>
-
-                        {move || {
-                            match authentication() {
-                                None => ().into_view(),
-                                Some(Err(e)) => {
-                                    match e {
-                                        APIError::AuthenticationError => {
-                                            view! {
-                                                <Login update_authentication=write_last_authentication_attempt />
-                                            }
-                                                .into_view()
-                                        }
-                                        e => {
-                                            view! {
-                                                <div class="errorWrapper">
-                                                    {move || format!("Error requesting authentication: {}", e)}
-                                                </div>
-                                            }
-                                                .into_view()
-                                        }
-                                    }
-                                }
-                                Some(Ok(_)) => {
-                                    let r3 = range.clone();
-                                    let r2 = range.clone();
-                                    view! { class=css,
-                                        <timeline::Timeline
-                                            callback=write_time_callback
-                                            range=r3
-                                        ></timeline::Timeline>
-                                        {move || match plugin_manager.value()() {
-                                            Some(plg) => {
-                                                view! {
-                                                    <event_manager::EventManager
-                                                        available_range=r2.clone()
-                                                        current_range=read_current_time
-                                                        plugin_manager=plg
-                                                    ></event_manager::EventManager>
-                                                }
-                                                    .into_view()
-                                            }
-                                            None => view! { Loading Plugins }.into_view(),
-                                        }}
-                                    }
-                                        .into_view()
-                                }
-                            }
-                        }}
-                    }
-                        .into_view()
-                }
-                Err(e) => {
+            {move || match events_resource.get() {
+                Some(Ok(events)) => {
+                    let excluded = exclude.get();
+                    let events_map: std::collections::HashMap<String, Vec<CompressedEvent>> = events
+                        .into_iter()
+                        .filter(|(plugin, _)| !excluded.contains(plugin))
+                        .collect();
                     view! {
-                        <TitleBar subtitle=Some("Error loading Day".to_string()) />
-
-                        <div class="errorWrapper">
-                            {move || format!("Error loading date: {}", e)}
-                        </div>
-                    }
-                        .into_view()
+                        <EventsViewer
+                            events=Signal::derive(move || events_map.clone())
+                            plugin_manager=plugin_manager
+                        />
+                    }.into_any()
                 }
+                Some(Err(APIError::AuthenticationError)) => view! {
+                    <Login update_authentication=last_auth.write_only() />
+                }.into_any(),
+                Some(Err(e)) => view! {
+                    <div class="errorWrapper">{format!("Error requesting events: {}", e)}</div>
+                }.into_any(),
+                None => view! { <div class="infoWrapper">Loading...</div> }.into_any(),
             }}
-
         </StyledView>
     }
 }
