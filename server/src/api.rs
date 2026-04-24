@@ -1,138 +1,107 @@
-use {
-    crate::plugin_manager::PluginManager,
-    rocket::{
-        fs::NamedFile,
-        get,
-        http::{CookieJar, Status},
-        post,
-        response::status,
-        serde::json::Json,
-        State,
-    },
-    serde::Deserialize,
-    server_api::{
-        config::Config,
-        db::Database,
-        external::types::{
-            api::{ APIResult, CompressedEvent},
-            available_plugins::AvailablePlugins,
-            external::{
-                chrono::{DateTime, SubsecRound, Timelike, Utc},
-                mongodb::{bson::doc, options::FindOptions},
-            },
-            timing::{Marker, TimeRange, Timing},
-        },
-        web::auth,
-    },
-    std::{collections::HashMap, path::PathBuf, sync::Arc},
-};
+//! Core `/api/*` routes on the main server (non-proxied).
 
-pub mod markers {
-    use super::*;
+use std::collections::HashMap;
 
-    pub async fn get_markers(range: &TimeRange, database: &Database) -> APIResult<Vec<Marker>> {
-        #[derive(Deserialize)]
-        struct OnlyTimingEvent {
-            timing: Timing,
-        }
+use chrono::{DateTime, SubsecRound, Timelike, Utc};
+use rocket::http::{CookieJar, Status};
+use rocket::post;
+use rocket::response::status;
+use rocket::serde::json::Json;
+use rocket::State;
 
-        let mut events = database
-            .find_events_with_custom_query::<OnlyTimingEvent>(
-                Database::generate_range_filter(range),
-                FindOptions::builder()
-                    .projection(doc! {"timing": 1})
-                    .build(),
-            )
-            .await?;
+use types::api::{APIError, APIResult, CompressedEvent};
+use types::timing::{Marker, TimeRange, Timing};
 
-        let mut hour_events: HashMap<DateTime<Utc>, u32> = HashMap::new();
+use crate::config::Config;
+use crate::plugin_registry::{PluginRegistry, RemoteManifest};
 
-        while events.advance().await? {
-            let next_event = events.deserialize_current()?;
-            let time = match next_event.timing {
-                Timing::Instant(t) => t,
-                Timing::Range(range) => range.start,
-            };
+// ---------- auth ----------
 
-            let new_time = time
-                .round_subsecs(0)
-                .with_second(0)
-                .unwrap()
-                .with_minute(0)
-                .unwrap();
-            match hour_events.get_mut(&new_time) {
-                Some(v) => {
-                    *v += 1;
-                }
-                None => {
-                    hour_events.insert(new_time, 1);
-                }
-            }
-        }
-
-        let mut res: Vec<_> = hour_events
-            .into_iter()
-            .map(|(time, amount)| Marker { time, amount })
-            .collect();
-
-        res.sort_by(|a, b| b.amount.cmp(&a.amount));
-        res = res.into_iter().collect();
-
-        Ok(res)
+fn auth(cookies: &CookieJar<'_>, config: &Config) -> APIResult<()> {
+    match cookies.get("pwd") {
+        Some(c) if c.value() == config.password => Ok(()),
+        _ => Err(APIError::AuthenticationError),
     }
-    #[post("/markers", data = "<request>")]
-    pub async fn get_markers_request(
-        request: Json<TimeRange>,
-        config: &State<Config>,
-        database: &State<Arc<Database>>,
-        cookies: &CookieJar<'_>,
-    ) -> status::Custom<Json<APIResult<Vec<Marker>>>> {
-        if let Err(e) = auth(cookies, config) {
-            status::Custom(Status::Unauthorized, Json(Err(e)))
-        } else {
-            status::Custom(Status::Ok, Json(get_markers(&request, database).await))
-        }
-    }
-}
-
-pub mod events {
-    use super::*;
-
-    #[post("/events", data = "<request>")]
-    pub async fn get_events(
-        request: Json<TimeRange>,
-        config: &State<Config>,
-        plugin_manager: &State<PluginManager>,
-        cookies: &CookieJar<'_>,
-    ) -> status::Custom<Json<APIResult<HashMap<AvailablePlugins, Vec<CompressedEvent>>>>> {
-        if let Err(e) = auth(cookies, config) {
-            return status::Custom(Status::Unauthorized, Json(Err(e)));
-        }
-        match plugin_manager.get_compress_events(&request).await {
-            Ok(v) => status::Custom(Status::Ok, Json(Ok(v))),
-            Err(e) => status::Custom(Status::InternalServerError, Json(Err(e))),
-        }
-    }
-
-    #[get("/icon/<plugin>")]
-    pub async fn get_icon(plugin: &str) -> Option<NamedFile> {
-        let mut path = PathBuf::from("../plugins/");
-        path.push(plugin);
-        path.push("icon.svg");
-        NamedFile::open(path).await.ok()
-    }
-}
-
-#[cfg(feature = "experiences")]
-#[post("/experiences_url")]
-pub fn experiences_url(config: &State<Config>) -> status::Accepted<Json<APIResult<String>>> {
-    status::Accepted(Json(Ok(config.experiences_url.to_string())))
 }
 
 #[post("/auth")]
 pub fn auth_request(
-    config: &State<Config>,
     cookies: &CookieJar<'_>,
+    config: &State<Config>,
 ) -> status::Custom<Json<APIResult<()>>> {
     status::Custom(Status::Ok, Json(auth(cookies, config)))
+}
+
+// ---------- events (fan-out) ----------
+
+#[post("/events", data = "<range>")]
+pub async fn events(
+    range: Json<TimeRange>,
+    cookies: &CookieJar<'_>,
+    config: &State<Config>,
+    registry: &State<PluginRegistry>,
+) -> status::Custom<Json<APIResult<HashMap<String, Vec<CompressedEvent>>>>> {
+    if let Err(e) = auth(cookies, config) {
+        return status::Custom(Status::Unauthorized, Json(Err(e)));
+    }
+    let events = registry.fan_out_events(&range).await;
+    status::Custom(Status::Ok, Json(Ok(events)))
+}
+
+// ---------- markers (derived from fan-out) ----------
+
+#[post("/markers", data = "<range>")]
+pub async fn markers(
+    range: Json<TimeRange>,
+    cookies: &CookieJar<'_>,
+    config: &State<Config>,
+    registry: &State<PluginRegistry>,
+) -> status::Custom<Json<APIResult<Vec<Marker>>>> {
+    if let Err(e) = auth(cookies, config) {
+        return status::Custom(Status::Unauthorized, Json(Err(e)));
+    }
+    let events = registry.fan_out_events(&range).await;
+    let markers = derive_markers(events);
+    status::Custom(Status::Ok, Json(Ok(markers)))
+}
+
+fn derive_markers(all: HashMap<String, Vec<CompressedEvent>>) -> Vec<Marker> {
+    let mut buckets: HashMap<DateTime<Utc>, u32> = HashMap::new();
+    for (_plugin, events) in all {
+        for e in events {
+            let t = match e.time {
+                Timing::Instant(t) => t,
+                Timing::Range(r) => r.start,
+            };
+            let Some(hourly) = t
+                .round_subsecs(0)
+                .with_second(0)
+                .and_then(|x| x.with_minute(0))
+            else {
+                continue;
+            };
+            *buckets.entry(hourly).or_insert(0) += 1;
+        }
+    }
+    let mut out: Vec<_> = buckets
+        .into_iter()
+        .map(|(time, amount)| Marker { time, amount })
+        .collect();
+    out.sort_by(|a, b| b.amount.cmp(&a.amount));
+    out
+}
+
+// ---------- manifest aggregation ----------
+
+#[post("/plugins")]
+pub async fn plugins(
+    cookies: &CookieJar<'_>,
+    config: &State<Config>,
+    registry: &State<PluginRegistry>,
+) -> status::Custom<Json<APIResult<Vec<RemoteManifest>>>> {
+    if let Err(e) = auth(cookies, config) {
+        return status::Custom(Status::Unauthorized, Json(Err(e)));
+    }
+    let manifests = registry.fan_out_manifests().await;
+    status::Custom(Status::Ok, Json(Ok(manifests)))
 }

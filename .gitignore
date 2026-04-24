@@ -9,3 +9,4 @@ client_api/target
 link_proc_macro/target
 *.lock
 target/
+/server/config.toml

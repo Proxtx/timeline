@@ -1,114 +1,75 @@
-#![feature(unboxed_closures)]
-#![feature(fn_traits)]
-
 mod api;
-mod plugin_manager;
+mod config;
+mod plugin_registry;
+mod proxy;
 
-use {
-    dyn_link::server_plugins::Plugins,
-    rocket::{
-        catch, catchers,
-        fs::FileServer,
-        response::{content, status},
-        routes, Request,
-    },
-    server_api::{
-        config, db,
-        error::error_string,
-        external::{
-            tokio::fs::File,
-            types::{api::CompressedEvent, available_plugins::AvailablePlugins},
-        },
-        plugin::{PluginData, PluginTrait},
-    },
-    std::{io, sync::Arc},
-};
+use std::io;
+use std::path::PathBuf;
+
+use rocket::fs::{FileServer, NamedFile, Options};
+use rocket::response::{content, status};
+use rocket::{catch, catchers, routes, Request};
+
+use crate::config::Config;
+use crate::plugin_registry::PluginRegistry;
 
 #[rocket::launch]
 async fn rocket() -> _ {
-    let mut config = config::Config::load()
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "info".into()),
+        )
+        .init();
+
+    let config = Config::load("config.toml")
         .await
-        .unwrap_or_else(|e| panic!("Unable to init Config: {}", e));
+        .unwrap_or_else(|e| panic!("unable to load config.toml: {}", e));
 
-    let db = Arc::new(
-        db::Database::new(&config.db_connection_string, &config.database)
-            .await
-            .unwrap_or_else(|e| {
-                panic! {"Unable to connect to Database: {}", e};
-            }),
-    );
+    tokio::fs::create_dir_all(&config.data_dir)
+        .await
+        .unwrap_or_else(|e| panic!("unable to create data_dir: {}", e));
+    tokio::fs::create_dir_all(config.data_dir.join("plugin_web"))
+        .await
+        .ok();
 
-    let mut plugins = Plugins::init(|plugin| PluginData {
-        database: db.clone(),
-        config: config.plugin_config.remove(&plugin),
-        plugin,
-        error_url: config.error_report_url.clone(),
-    })
-    .await;
+    let registry = PluginRegistry::new(&config.plugin);
+    tracing::info!(count = config.plugin.len(), "plugins registered");
 
-    plugins.plugins.insert(
-        AvailablePlugins::error,
-        Box::new(
-            server_api::error::Plugin::new(PluginData {
-                database: db.clone(),
-                config: config.plugin_config.remove(&AvailablePlugins::error),
-                plugin: AvailablePlugins::error,
-                error_url: config.error_report_url.clone(),
-            })
-            .await,
-        ),
-    );
-
-    let db_2 = db.clone();
-    let error_report_url_2 = config.error_report_url.clone();
-
-    let plugin_manager = plugin_manager::PluginManager::new(
-        plugins.plugins,
-        Arc::new(move |str: String, plugin: AvailablePlugins| {
-            error_string(db_2.clone(), str, Some(plugin), &error_report_url_2);
-        }),
-    );
-
+    let plugin_web_root = config.data_dir.join("plugin_web");
     let figment = rocket::Config::figment().merge(("port", config.port));
-    let mut rocket_state = rocket::custom(figment)
+
+    rocket::custom(figment)
         .register("/", catchers![not_found])
         .manage(config)
-        .manage(db)
-        .mount("/", FileServer::from("../frontend/dist/"))
+        .manage(registry)
+        .mount("/", FileServer::from("../frontend/dist/").rank(20))
+        .mount(
+            "/plugin_web",
+            FileServer::new(plugin_web_root, Options::Index | Options::DotFiles).rank(5),
+        )
         .mount(
             "/api",
             routes![
-                api::markers::get_markers_request,
-                api::events::get_events,
-                api::events::get_icon,
                 api::auth_request,
+                api::events,
+                api::markers,
+                api::plugins,
+                proxy::proxy_get,
+                proxy::proxy_post,
+                proxy::proxy_put,
+                proxy::proxy_delete,
             ],
-        );
-
-    #[cfg(feature = "experiences")]
-    {
-        rocket_state = rocket_state.mount("/api", routes![api::experiences_url]);
-    }
-
-    for (plugin, routes) in plugins.routes {
-        rocket_state = rocket_state.mount(format!("/api/plugin/{}", plugin), routes);
-        rocket_state = plugin_manager
-            .get_plugin(&plugin)
-            .read()
-            .await
-            .rocket_build_access(rocket_state);
-    }
-
-    rocket_state = rocket_state.manage(plugin_manager);
-    rocket_state
+        )
 }
 
 #[catch(404)]
 async fn not_found(
     _req: &Request<'_>,
-) -> Result<status::Accepted<content::RawHtml<File>>, io::Error> {
-    match File::open("../frontend/dist/index.html").await {
-        Ok(v) => Ok(status::Accepted(content::RawHtml(v))),
+) -> Result<status::Accepted<content::RawHtml<NamedFile>>, io::Error> {
+    let path = PathBuf::from("../frontend/dist/index.html");
+    match NamedFile::open(path).await {
+        Ok(f) => Ok(status::Accepted(content::RawHtml(f))),
         Err(e) => Err(e),
     }
 }

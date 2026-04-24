@@ -1,0 +1,14 @@
+port = 8002
+password = "change-me"
+data_dir = "./data"
+
+# error_report_url = "https://example.com/report"
+
+# Register each plugin process here. `name` must match the plugin's own
+# `plugin.name` in its config.toml. `url` is where the plugin listens;
+# `token` is the shared bearer the main server sends.
+#
+# [[plugin]]
+# name = "timeline_plugin_steam"
+# url  = "http://127.0.0.1:9001"
+# token = "replace-me"

@@ -1,9 +1,5 @@
-#[cfg(feature = "client")]
-use crate::available_plugins::AvailablePlugins;
-use {
-    serde::{Deserialize, Serialize},
-    std::fmt,
-};
+use serde::{Deserialize, Serialize};
+use std::fmt;
 
 pub type APIResult<T> = Result<T, APIError>;
 
@@ -11,13 +7,10 @@ pub type APIResult<T> = Result<T, APIError>;
 pub enum APIError {
     DatabaseError(String),
     AuthenticationError,
-    #[cfg(feature = "client")]
     RequestError(String),
     SerdeJsonError(String),
     PluginError(String),
     Custom(String),
-    #[cfg(feature = "experiences")]
-    ExperienceError(String),
 }
 
 impl std::error::Error for APIError {}
@@ -25,105 +18,26 @@ impl std::error::Error for APIError {}
 impl fmt::Display for APIError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::DatabaseError(e) => {
-                write!(f, "Error executing API Request: Database Error: {}", e)
-            }
-            Self::AuthenticationError => {
-                write!(
-                    f,
-                    "Error executing API Request: Authentication Error: Password is wrong"
-                )
-            }
-            #[cfg(feature = "client")]
-            Self::RequestError(str) => {
-                write!(
-                    f,
-                    "Error executing API Request: HTTP-Request Error: {}",
-                    str
-                )
-            }
-            Self::SerdeJsonError(txt) => {
-                write!(
-                    f,
-                    "Error executing API Request: Error converting data to/from json: {}",
-                    txt
-                )
-            }
-            Self::PluginError(txt) => {
-                write!(
-                    f,
-                    "Error executing API Request: Encountered a plugin error: {}",
-                    txt
-                )
-            }
-            Self::Custom(txt) => {
-                write!(f, "API Error: {}", txt)
-            }
-            #[cfg(feature = "experiences")]
-            Self::ExperienceError(txt) => {
-                write!(
-                    f,
-                    "Error executing API Request: Encountered an experience error: {}",
-                    txt
-                )
-            }
+            Self::DatabaseError(e) => write!(f, "Database error: {}", e),
+            Self::AuthenticationError => write!(f, "Authentication error"),
+            Self::RequestError(e) => write!(f, "Request error: {}", e),
+            Self::SerdeJsonError(e) => write!(f, "JSON error: {}", e),
+            Self::PluginError(e) => write!(f, "Plugin error: {}", e),
+            Self::Custom(e) => write!(f, "{}", e),
         }
     }
 }
 
-#[cfg(feature = "server")]
-impl From<mongodb::error::Error> for APIError {
-    fn from(value: mongodb::error::Error) -> Self {
-        Self::DatabaseError(format!("{}", value))
-    }
-}
-
-#[cfg(feature = "client")]
-impl From<reqwest::Error> for APIError {
-    fn from(value: reqwest::Error) -> Self {
-        Self::RequestError(format!("{}", value))
-    }
-}
-
 impl From<serde_json::Error> for APIError {
-    fn from(value: serde_json::Error) -> Self {
-        Self::SerdeJsonError(format!("{}", value))
+    fn from(v: serde_json::Error) -> Self {
+        Self::SerdeJsonError(v.to_string())
     }
 }
 
-#[derive(Serialize, Debug)]
-#[cfg_attr(feature = "client", derive(Deserialize, Clone, PartialEq))]
+/// Wire format for an event handed from plugin → main server → frontend.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct CompressedEvent {
     pub data: serde_json::Value,
     pub time: crate::timing::Timing,
     pub title: String,
 }
-
-#[cfg(feature = "client")]
-pub trait EventWrapper
-where
-    Self: Clone + PartialEq + 'static,
-{
-    fn get_compressed_event(&self) -> CompressedEvent;
-}
-
-#[cfg(feature = "client")]
-impl EventWrapper for CompressedEvent {
-    fn get_compressed_event(&self) -> CompressedEvent {
-        self.clone()
-    }
-}
-
-#[cfg(feature = "client")]
-impl EventWrapper for (AvailablePlugins, CompressedEvent) {
-    fn get_compressed_event(&self) -> CompressedEvent {
-        self.1.clone()
-    }
-}
-
-#[derive(Deserialize, Serialize, Clone)]
-pub struct TimelineHostname(pub String);
-
-#[cfg(feature = "experiences")]
-#[derive(Deserialize, Serialize, Clone)]
-pub struct ExperiencesHostname(pub String);
