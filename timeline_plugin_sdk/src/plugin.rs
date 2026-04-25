@@ -2,7 +2,7 @@
 
 use std::time::Duration;
 
-use rocket::Route;
+use rocket::{Build, Rocket, Route};
 
 use types::api::{APIResult, CompressedEvent};
 use types::timing::TimeRange;
@@ -54,5 +54,12 @@ pub trait Plugin: Sized + Send + Sync + 'static {
     /// `/api/plugin/<name>/<your-path>`. Returning an empty vec is fine.
     fn routes(&self) -> Vec<Route> {
         Vec::new()
+    }
+
+    /// Attach plugin-specific Rocket state (e.g. via `rocket.manage(...)`).
+    /// Called once during launch, after the SDK has already managed its own
+    /// `PluginState` and `PluginHandle`. Default is identity.
+    fn rocket_attach(&self, rocket: Rocket<Build>) -> Rocket<Build> {
+        rocket
     }
 }

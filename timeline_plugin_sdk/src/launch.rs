@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use futures::future::BoxFuture;
 use futures::FutureExt;
-use rocket::{routes, Config as RocketConfig, Route};
+use rocket::{routes, Build, Config as RocketConfig, Rocket, Route};
 
 use types::api::{APIResult, CompressedEvent};
 use types::timing::TimeRange;
@@ -117,6 +117,8 @@ pub async fn launch<P: Plugin>(config_path: impl Into<PathBuf>) -> anyhow::Resul
         rocket = rocket.mount("/", plugin_routes);
     }
 
+    rocket = plugin.obj_rocket_attach(rocket);
+
     rocket.launch().await?;
     Ok(())
 }
@@ -156,6 +158,7 @@ trait PluginObj: Send + Sync + 'static {
     fn obj_events<'a>(&'a self, range: TimeRange) -> BoxFuture<'a, APIResult<Vec<CompressedEvent>>>;
     fn obj_request_loop<'a>(&'a self) -> BoxFuture<'a, Option<Duration>>;
     fn obj_routes(&self) -> Vec<Route>;
+    fn obj_rocket_attach(&self, rocket: Rocket<Build>) -> Rocket<Build>;
 }
 
 impl<P: Plugin> PluginObj for P {
@@ -170,5 +173,8 @@ impl<P: Plugin> PluginObj for P {
     }
     fn obj_routes(&self) -> Vec<Route> {
         Plugin::routes(self)
+    }
+    fn obj_rocket_attach(&self, rocket: Rocket<Build>) -> Rocket<Build> {
+        Plugin::rocket_attach(self, rocket)
     }
 }
