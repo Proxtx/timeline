@@ -10,3 +10,4 @@ link_proc_macro/target
 *.lock
 target/
 /server/config.toml
+/tests/e2e/_run/
