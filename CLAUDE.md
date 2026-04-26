@@ -2,85 +2,95 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Layout
+## What this repository is
 
-This directory contains **two sibling Rust projects** that are developed together but live in separate git repositories:
+Self-hosted life-logging server. The server is a Rocket app on **stable Rust**; the frontend is a **Leptos 0.8 CSR** wasm bundle built with trunk; data lands in **per-plugin SQLite** files plus on-disk asset folders. Plugins are **standalone HTTP services** that the main server proxies, each one independently buildable and runnable. The pre-rework MongoDB / nightly-rust / compile-time-codegen setup is gone; see `MIGRATION.md` if you're coming from that.
 
-- `timeline/` — a self-hosted life-logging server + Leptos CSR frontend. Plugins in `timeline/plugins/*` each contain `server/` and `client/` crates.
-- `experiences/` — optional companion project that organizes timeline events into user-curated "experiences". Only relevant when the `experiences` feature is enabled on timeline.
+## Repository layout
 
-They reference each other by path through two plain-text pointer files:
+- `server/` — main Rocket binary. Loads `config.toml`, registers plugins from `[[plugin]]` tables, proxies `/api/plugin/<name>/<path..>` to each plugin, fan-outs `/api/events` and `/api/markers`, aggregates `/api/plugins` manifest.
+- `frontend/` — Leptos 0.8 CSR app. Routes: `/timeline[/:date]`, `/event/latest[/exclude/:exclude]`. Loads each plugin's wasm bundle dynamically and mounts it into a shadow root per event card.
+- `types/` — `CompressedEvent`, `Timing`, `TimeRange`, `APIError`, `APIResult`, `Marker`. No feature flags; no MongoDB.
+- `timeline_plugin_sdk/` — server-side helper crate plugin authors depend on. Provides the `Plugin` trait, SQLite event store (`Db`), `AssetStore`, `Cache`, `ErrorReporter`, bearer-token guard, `launch::<P>()` entrypoint.
+- `timeline_plugin_client_sdk/` — wasm-side helper crate. `plugin_entry!` declarative macro, `mount_plugin` (open shadow root + `leptos::mount::mount_to`), `ApiClient`, `Style`, `PluginContext`.
+- `plugins/<name>/` — independent git repos for each plugin. Each has `server/` (Rocket binary on `timeline_plugin_sdk`), `client/` (Leptos+trunk wasm bundle on `timeline_plugin_client_sdk`), `MIGRATION.md`, `config.toml.example`. Note `plugins/` itself is gitignored from the timeline repo — each plugin has its own `.git/`.
+- `flake.nix` — `packages.server`, `packages.frontend`, `devShells.default` (rust toolchain + trunk + sqlite), `nixosModules.default` with `services.timeline` running the main server + one systemd unit per plugin.
+- `tests/e2e/` — `smoke.sh` (curl-based server probes; passes), `serve.sh` (host the server for browser testing), `playwright.spec.ts` (browser smoke; runner not wired in this session — see `tests/e2e/README.md`).
 
-- `timeline/experiences_location.txt` → relative path to the experiences repo.
-- `experiences/timeline_location.txt` → relative path to the timeline repo.
+## How a plugin works
 
-Both files must exist and be correct for a cross-project build. They are read by the `linker` binaries (see below), not by cargo directly.
+Each plugin is a standalone process with two pieces:
 
-## The plugin + linker system (most important to understand)
+1. A Rocket binary (`plugins/<name>/server/`) that implements `timeline_plugin_sdk::Plugin`:
+   - `Plugin::events(range)` — return `Vec<CompressedEvent>` overlapping the range. Most plugins read from `self.ctx.db.query_range_typed::<MyPayload>(&range)`. Plugins that synthesize events on demand (location, usage) skip the DB entirely.
+   - `Plugin::manifest()` — returns the manifest the main server aggregates: `name`, `display_name`, `style`, `icon?`, `web_entry?`.
+   - `Plugin::request_loop()` — optional; the SDK reschedules it after the returned `Duration`. Panics are caught and reported via `ErrorReporter`.
+   - `Plugin::routes()` — optional; plugin-specific Rocket routes get mounted alongside the SDK's standard ones.
+   - `Plugin::rocket_attach(rocket)` — optional; for plugins that need their own Rocket state (e.g. an OG cache, an RSA verifying key).
+   - The SDK's standard routes — `POST /events`, `GET /manifest`, `GET /assets/<path..>`, `GET /health` — are always present.
 
-There is **no static `Cargo.toml`** enumerating plugins. Instead, each project has a `linker/` binary that regenerates `link/Cargo.toml` by scanning `plugins/` at build-time. The generated `dyn_link` (timeline) / `link` (experiences) crate then feature-gates every discovered plugin.
+2. A Leptos+trunk client (`plugins/<name>/client/`) that exports a `__timeline_plugin_render` symbol via `plugin_entry!(render)`. The main frontend dynamic-imports the client's JS, mounts it into a shadow root per event card, and hands it a `PluginContext { plugin_name, api_base, event, style, mode }`.
 
-### Timeline flow
-
-1. `timeline/linker/src/main.rs` reads `timeline/plugins/*`, reads `../experiences_location.txt`, and writes `timeline/link/Cargo.toml` with one optional `*_server` / `*_client` dependency per plugin, plus matching entries on the `server` / `client` feature lists.
-2. `link_proc_macro::generate_server_plugins` / `generate_client_plugins` (expanded in `timeline/link/src/*_plugins.rs`) produce the runtime `Plugins` struct that actually instantiates every compiled-in plugin.
-3. `link_proc_macro::generate_available_plugins` (in `timeline/types/src/available_plugins.rs`) extends the `AvailablePlugins` enum with one variant per plugin.
-4. The plugin list is sourced from `./plugins.txt` if present (this is how the Nix flake pins plugins), otherwise by reading `../plugins/` directly. `timeline/types/build.rs` has a second, independent codegen path that writes a plugins.rs to `OUT_DIR` — both must stay in sync with the plugin directory layout.
-
-### Run sequence
-
-From `timeline/`:
-```
-cd linker && cargo run             # regenerate link/Cargo.toml (pass "disable" to omit frontend deps)
-cd ../frontend && trunk build --release
-cd ../server && cargo run --release
-```
-
-Running `cargo run` / `cargo build` inside `server/` or `frontend/` **before** running `linker` will fail or produce stale output — the linker is the source of truth for which plugins are wired in.
-
-### Experiences flow
-
-Same pattern, but the experiences `linker` generates **two** files:
-- `experiences/timeline_types/Cargo.toml` (points the shared types crate at `timeline/types` with the `experiences,client` features)
-- `experiences/link/Cargo.toml` (the plugin feature matrix)
-
-To enable experiences inside timeline: build with `--features=experiences` on `server` (and on `frontend` via trunk), ensure `experiences_location.txt` is correct, and set `experiences_url` in `server/config.toml`.
+Communication: main server → plugin uses `Authorization: Bearer <token>` from the plugin's entry in the main `config.toml`. Plugins that need URL-time auth for external clients (notification, unify) layer that on top.
 
 ## Common commands
 
-Timeline:
-- Regenerate plugin wiring: `cd timeline/linker && cargo run` (append `disable` to skip frontend/client plugins, used by the Nix build).
-- Frontend release build: `cd timeline/frontend && trunk build --release`
-- Frontend dev watch: `cd timeline/frontend && cargo watch -i dist -- trunk build` (see `frontend/dev_run.txt`).
-- Server run: `cd timeline/server && cargo run --release` (serves the `frontend/dist/` directory and mounts plugin routes under `/api/plugin/{plugin}`).
-- With experiences: add `--features=experiences` to the server build and set the frontend's `experiences` feature.
+Top of repo:
+- `./tests/e2e/smoke.sh` — full build + curl probes. `--skip-build` to skip `trunk build` / `cargo build`.
+- `./tests/e2e/serve.sh` — boot the server for manual browser testing (port 18002).
 
-Experiences:
-- Regenerate wiring: `cd experiences/linker && cargo run`
-- Frontend watch: `cd experiences/frontend && cargo watch -i dist -- trunk build` (see `frontend/run.txt`).
+Per-crate:
+- Frontend release: `cd frontend && trunk build --release`
+- Frontend dev watch: `cd frontend && trunk serve` (or `cargo watch -i dist -- trunk build`)
+- Server: `cd server && cargo +stable run --release`
+- SDK type-check: `cd timeline_plugin_sdk && cargo +stable check`
+- Client SDK type-check: `cd timeline_plugin_client_sdk && cargo +stable check --target wasm32-unknown-unknown`
+- A specific plugin server: `cd plugins/<name>/server && cargo +stable run`
+- A specific plugin client: `cd plugins/<name>/client && trunk build --release`
 
-Toolchain: Rust **nightly** is required (`timeline/server/Cargo.toml` pins `channel = "nightly"`; the frontend uses `#![feature(let_chains)]` and leptos nightly). The Nix flake at `timeline/flake.nix` uses `rust-bin.nightly.latest.default` via crane and is the canonical production build.
+The `rust-toolchain.toml` at the timeline root pins **stable** with the wasm32 target, so `cargo` (no `+stable`) does the right thing in the timeline workspace. Plugin sub-repos don't share that toolchain file by default; use `cargo +stable` if you've still got a nightly default.
 
-## Runtime architecture (server)
+## Configuration
 
-- `timeline/server/src/main.rs` boots Rocket, loads `config.toml`, opens a MongoDB connection (`server_api::db::Database`), then calls `Plugins::init` (the codegen'd `dyn_link::server_plugins::Plugins`) which constructs every compiled-in plugin with a `PluginData { database, config, plugin, error_url }`.
-- Each plugin implements `server_api::plugin::PluginTrait`: `get_compressed_events` is mandatory; `request_loop` / `request_loop_mut` are optional async loops the `PluginManager` reschedules on their returned `Duration` (see `server/src/plugin_manager.rs`). Panics in plugin loops are caught, reported via `error_url`, and the loop sleeps 300s before retrying.
-- The built-in `error` plugin is inserted manually after codegen because it lives in `server_api::error`, not in `plugins/`.
-- Routes: `FileServer` serves `../frontend/dist/`, core API lives at `/api/*`, and each plugin's routes mount at `/api/plugin/{plugin}`. The 404 catcher falls back to `dist/index.html` for SPA routing.
+`server/config.toml.example` shows the new shape. Local `config.toml` is gitignored. Per-plugin entries:
 
-## Frontend architecture
+```toml
+[[plugin]]
+name = "timeline_plugin_steam"
+url  = "http://127.0.0.1:9001"
+token = "shared-with-the-plugin"
+```
 
-- `timeline/frontend` is a Leptos CSR app (`trunk` + `stylers` for scoped CSS). `build.rs` writes the stylers output to `target/generated.css`.
-- Routes: `/timeline[/:date]` and `/event/latest[/exclude/:exclude]` (see `main.rs`).
-- `plugin_manager::PluginManager` (client side) mirrors the server's plugin registry; each plugin's `client/` crate supplies UI.
-- Auth is gated at `api_request::<(), ()>("/auth", &())`; failures render the `Login` wrapper.
+Each plugin's own `config.toml` follows the SDK shape: `[plugin]` (port, token, optional data_dir / display_name / error_report_url) plus `[config]` (whatever the plugin's own deserialized struct expects).
 
-## Config
+## Routing model
 
-`timeline/server/config.toml` holds DB connection, port, password, optional `experiences_url`, and per-plugin `[plugin_config.*]` tables. The `password` and `db_connection_string` in the checked-in file are real dev values — do not commit new secrets here and rotate any that leak.
+- Main server's `/` → `FileServer` from `../frontend/dist/`.
+- `/api/auth` cookie-checks the main `pwd` cookie against the main config password.
+- `/api/events`, `/api/markers`, `/api/plugins` cookie-auth then fan-out to plugins over HTTP with bearer tokens.
+- `/api/plugin/<name>/<path..>` proxies any GET / POST / PUT / DELETE to the plugin's base URL with bearer added (the proxy itself doesn't cookie-check; plugins implement their own URL-time auth where needed — e.g. signed file URLs in media_scan / documents, or per-plugin password fields in notification / unify).
+- `/plugin_web/<name>/<path..>` serves trunk dist outputs from `<data_dir>/plugin_web/<name>/`. The frontend dynamic-imports JS from here.
+- 404 catcher returns `dist/index.html` for SPA routing.
+
+## Per-plugin storage layout
+
+```
+<data_dir>/
+  plugins/
+    <plugin_name>/
+      events.db                          SQLite (id TEXT PRIMARY KEY,
+                                          start_ts/end_ts INTEGER ms,
+                                          title TEXT, data TEXT JSON)
+      assets/<rel>                       blobs lifted out of events
+      cache/<key>.json                   plugin-side state cache
+      signing_key.pem                    media_scan / documents
+  plugin_web/<plugin_name>/<trunk dist>
+```
 
 ## Gotchas
 
-- The plugin enum (`AvailablePlugins`) is generated in **two** places (the proc macro in `types/src/available_plugins.rs` and `types/build.rs`). Both read `plugins/` from the CWD at compile time; running cargo from an unexpected directory can produce a mismatched enum and confusing type errors.
-- The linker writes into tracked files (`link/Cargo.toml`, `timeline_types/Cargo.toml`). Diff noise from those files after a build is expected; don't commit it unless you're intentionally changing the plugin set shipped in git.
-- `experiences_navigator` is referenced in `timeline/link/Cargo.toml` with a hard-coded absolute path outside this repo tree. The linker rewrites this path to match `experiences_location.txt` — re-run the linker after moving the experiences checkout.
+- SQLite times are **milliseconds** (`timestamp_millis()`); the old Mongo-era code stored nanoseconds. Per-plugin `MIGRATION.md` files spell out the `/1_000_000` conversion.
+- Trunk filehash is disabled per-plugin via `Trunk.toml` (`filehash = false`) so the manifest's `web_entry` filename doesn't change per build.
+- Plugin `cargo check` inside a sub-repo can produce a stale `Cargo.lock` if you switch SDK deps — `rm Cargo.lock && cargo check` if you see weird `leptos`/`leptos_macro` version-mismatch errors.
+- `cargo tree -p <pkg> --target wasm32-unknown-unknown` has been observed to hang for >1h on this project; prefer `grep '^name = "<pkg>"' Cargo.lock -A1` or build logs for inspecting versions.
+- Experiences rework is **deferred**; see `experiences/PORT_PLAN.md`. The old `timeline_plugin_experience` plugin is redundant once experiences ships; drop it from the main server's `[[plugin]]` list when running the new experiences plugin.
