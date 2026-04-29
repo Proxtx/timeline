@@ -87,16 +87,25 @@ impl PluginManager {
             .unwrap_or_else(|| name.to_string())
     }
 
+    /// Resolve a plugin's icon URL. Three branches:
+    /// 1. manifest's `icon` is an absolute URL (`/...` or `http...`) → use as-is.
+    /// 2. manifest's `icon` is a relative path → served from the plugin's
+    ///    trunk bundle at `/plugin_web/<name>/<icon>`.
+    /// 3. manifest's `icon` is `None` → convention is `icon.svg` inside the
+    ///    plugin's bundle (plugin clients ship `../icon.svg` via trunk
+    ///    `copy-file`). Missing files chain through `icon.png` and finally
+    ///    fall back to the frontend's generic `/icons/event.svg` via
+    ///    `<img onerror>` in `events_display`.
     pub fn icon_url(&self, name: &str) -> String {
         if let Some(m) = self.plugins.get(name) {
             if let Some(icon) = &m.icon {
                 if icon.starts_with('/') || icon.starts_with("http") {
                     return icon.clone();
                 }
-                return format!("/api/plugin/{}/{}", name, icon.trim_start_matches('/'));
+                return format!("/plugin_web/{}/{}", name, icon.trim_start_matches('/'));
             }
         }
-        format!("/api/icon/{}", name)
+        format!("/plugin_web/{}/icon.svg", name)
     }
 
     /// Mount a plugin UI into the shadow root of `host`. If the plugin has

@@ -80,6 +80,17 @@ fn AppSelect(
                                 src=icon_url
                                 class="appIcon"
                                 on:click=move |_| { current_app.set(Some(name_for_click.clone())); }
+                                on:error=move |ev| {
+                                    use wasm_bindgen::JsCast;
+                                    if let Some(img) = ev.target().and_then(|t| t.dyn_into::<web_sys::HtmlImageElement>().ok()) {
+                                        let cur = img.src();
+                                        if cur.ends_with("/icon.svg") {
+                                            img.set_src(&cur.replace("/icon.svg", "/icon.png"));
+                                        } else if !cur.ends_with("/icons/event.svg") {
+                                            img.set_src("/icons/event.svg");
+                                        }
+                                    }
+                                }
                             />
                             <div
                                 class="indicator"
