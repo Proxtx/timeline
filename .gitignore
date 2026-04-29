@@ -11,3 +11,5 @@ link_proc_macro/target
 target/
 /server/config.toml
 /tests/e2e/_run/
+/tests/e2e/_run3/
+/tests/e2e/node_modules/

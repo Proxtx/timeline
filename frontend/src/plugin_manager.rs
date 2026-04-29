@@ -151,20 +151,35 @@ async fn dynamic_import_render(
     host: &web_sys::HtmlElement,
     ctx: &PluginContext,
 ) -> Result<(), JsValue> {
-    // Using eval() for the native `import()` operator. wasm-bindgen has no
-    // direct binding; `js_sys::Function::call*(new Function("url", "return import(url)"))`
-    // is the common workaround.
+    // Modules built by trunk in default `--target web` mode export a
+    // default `init` function that loads the wasm asynchronously. We
+    // must call it before any other named export becomes usable.
     let importer = js_sys::Function::new_with_args("url", "return import(url);");
     let promise = importer
         .call1(&JsValue::NULL, &JsValue::from_str(url))?
         .dyn_into::<js_sys::Promise>()?;
     let module = wasm_bindgen_futures::JsFuture::from(promise).await?;
 
+    // Initialize the plugin's wasm. `module.default()` returns a Promise.
+    let init_fn = js_sys::Reflect::get(&module, &JsValue::from_str("default"))?
+        .dyn_into::<js_sys::Function>()
+        .map_err(|_| JsValue::from_str("plugin module missing default export (init)"))?;
+    let init_promise = init_fn.call0(&JsValue::NULL)?;
+    if let Ok(p) = init_promise.dyn_into::<js_sys::Promise>() {
+        wasm_bindgen_futures::JsFuture::from(p).await?;
+    }
+
     let render_fn = js_sys::Reflect::get(&module, &JsValue::from_str("__timeline_plugin_render"))?
         .dyn_into::<js_sys::Function>()
         .map_err(|_| JsValue::from_str("plugin module missing __timeline_plugin_render"))?;
 
-    let ctx_value = serde_wasm_bindgen::to_value(ctx).map_err(|e| JsValue::from_str(&e.to_string()))?;
+    // `Timing` carries i64 nanoseconds which overflow JS Number precision
+    // (2^53). Serialize i64/u64 as BigInt; the plugin's deserializer
+    // (serde-wasm-bindgen::from_value) handles BigInt natively.
+    let serializer = serde_wasm_bindgen::Serializer::new().serialize_large_number_types_as_bigints(true);
+    let ctx_value = ctx
+        .serialize(&serializer)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
     render_fn.call2(&JsValue::NULL, host, &ctx_value)?;
     Ok(())
 }

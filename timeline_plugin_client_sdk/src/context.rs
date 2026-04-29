@@ -7,6 +7,7 @@ use types::api::CompressedEvent;
 use crate::style::Style;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
 pub enum RenderMode {
     /// Rendering a single event card.
     Event,
