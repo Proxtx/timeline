@@ -15,12 +15,14 @@ use crate::plugin_registry::PluginRegistry;
 
 #[rocket::launch]
 async fn rocket() -> _ {
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
-        )
-        .init();
+    let _ = tracing::subscriber::set_global_default(
+        tracing_subscriber::FmtSubscriber::builder()
+            .with_env_filter(
+                tracing_subscriber::EnvFilter::try_from_default_env()
+                    .unwrap_or_else(|_| "info".into()),
+            )
+            .finish(),
+    );
 
     let config = Config::load("config.toml")
         .await
