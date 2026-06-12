@@ -19,6 +19,16 @@ where
         .expect("window")
         .document()
         .expect("document");
+
+    // Shadow DOM is style-isolated: the document's stylesheets — including the
+    // plugin's own bundled `style.css` — do not cross the boundary, so without
+    // this the plugin view renders structurally unstyled. (Theme CSS custom
+    // properties set on a host ancestor still inherit through the boundary,
+    // which is why colors work but layout doesn't.) Link the plugin's CSS,
+    // served by the main server at `/plugin_web/<name>/style.css`, into the
+    // shadow root. Plugins without a `style.css` get a harmless 404.
+    inject_stylesheet(&doc, &shadow, &ctx.plugin_name);
+
     let mount_el = doc
         .create_element("div")
         .expect("create mount div")
@@ -39,6 +49,20 @@ where
     F: FnOnce(PluginContext) -> AnyView + 'static,
 {
     mount_plugin(host, ctx, render)
+}
+
+/// Append a `<link rel="stylesheet">` to the plugin's bundled CSS into the
+/// shadow root. Idempotent: skips if a link with the same href is present.
+fn inject_stylesheet(doc: &web_sys::Document, shadow: &web_sys::ShadowRoot, plugin_name: &str) {
+    let href = format!("/plugin_web/{}/style.css", plugin_name);
+    if let Ok(Some(_)) = shadow.query_selector(&format!("link[href=\"{}\"]", href)) {
+        return;
+    }
+    if let Ok(link) = doc.create_element("link") {
+        let _ = link.set_attribute("rel", "stylesheet");
+        let _ = link.set_attribute("href", &href);
+        let _ = shadow.append_child(&link);
+    }
 }
 
 fn ensure_shadow_root(host: &web_sys::HtmlElement) -> web_sys::ShadowRoot {
