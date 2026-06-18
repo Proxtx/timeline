@@ -285,6 +285,16 @@
           # libpdfium.so, so this is fully hermetic / sandbox-clean.
           pdfium = pkgs.pdfium-binaries;
 
+          # If an error plugin is configured, point every other plugin's
+          # ErrorReporter at its /report endpoint. The error plugin listens on
+          # localhost only (plugin ports are never exposed through nginx), so
+          # no URL secret is needed.
+          errorPlugin = lib.findFirst (p: p.name == "timeline_plugin_error") null cfg.plugins;
+          errorUrl =
+            if errorPlugin != null
+            then "http://127.0.0.1:${toString errorPlugin.port}/report"
+            else null;
+
           # Render one plugin's config.toml from its options.
           pluginConfig = p:
             tomlFormat.generate "${p.name}-config.toml" ({
@@ -293,7 +303,10 @@
                 port = p.port;
                 token = p.token;
                 data_dir = cfg.dataDir;
-              } // lib.optionalAttrs (p.displayName != null) { display_name = p.displayName; };
+              } // lib.optionalAttrs (p.displayName != null) { display_name = p.displayName; }
+                // lib.optionalAttrs (errorUrl != null && p.name != "timeline_plugin_error") {
+                  error_report_url = errorUrl;
+                };
               config = p.settings
                 # documents needs pdfium + pdfjs paths injected automatically.
                 // lib.optionalAttrs (p.name == "timeline_plugin_documents") {
@@ -306,7 +319,8 @@
             port = ${toString cfg.port}
             password = "${cfg.password}"
             data_dir = "${cfg.dataDir}"
-            ${lib.optionalString (cfg.errorReportUrl != null) ''error_report_url = "${cfg.errorReportUrl}"''}
+            ${let u = if cfg.errorReportUrl != null then cfg.errorReportUrl else errorUrl;
+              in lib.optionalString (u != null) ''error_report_url = "${u}"''}
             ${lib.concatMapStringsSep "\n" (p: ''
               [[plugin]]
               name = "${p.name}"
