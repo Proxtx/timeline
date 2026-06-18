@@ -411,10 +411,21 @@
             users.groups.${cfg.group} = { };
             users.users.${cfg.user} = { group = cfg.group; isSystemUser = true; };
 
+            # Pre-create every dir a unit uses as WorkingDirectory, owned by
+            # the timeline user. systemd chdir's into WorkingDirectory *before*
+            # ExecStartPre runs, so the dirs must already exist (otherwise the
+            # mkdir ExecStartPre is too late → 200/CHDIR) and be writable by the
+            # service user (so envsubst can write config.toml + plugins can open
+            # their SQLite WAL).
             systemd.tmpfiles.rules = [
               "d ${cfg.dataDir} 0750 ${cfg.user} ${cfg.group} -"
+              "d ${cfg.dataDir}/server 0750 ${cfg.user} ${cfg.group} -"
+              "d ${cfg.dataDir}/frontend 0750 ${cfg.user} ${cfg.group} -"
+              "d ${cfg.dataDir}/plugins 0750 ${cfg.user} ${cfg.group} -"
               "d ${cfg.dataDir}/plugin_web 0750 ${cfg.user} ${cfg.group} -"
             ] ++ map (p:
+              "d ${cfg.dataDir}/plugins/${p.name} 0750 ${cfg.user} ${cfg.group} -"
+            ) cfg.plugins ++ map (p:
               "L+ ${cfg.dataDir}/plugin_web/${p.name} - - - - ${p.package}/share/web"
             ) cfg.plugins;
 
