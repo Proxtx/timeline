@@ -295,6 +295,15 @@
             then "http://127.0.0.1:${toString errorPlugin.port}/report"
             else null;
 
+          # Materialise a config.toml at service start. With an environmentFile
+          # (e.g. a sops-decrypted .env) the rendered template is run through
+          # envsubst so ${SECRET} placeholders are filled at runtime and never
+          # land in the world-readable Nix store; otherwise it's a plain copy.
+          renderCmd = src: dst:
+            if cfg.environmentFile != null
+            then "${pkgs.bash}/bin/sh -c '${pkgs.envsubst}/bin/envsubst < ${src} > ${dst} && ${pkgs.coreutils}/bin/chmod 600 ${dst}'"
+            else "${pkgs.coreutils}/bin/cp -f ${src} ${dst}";
+
           # Render one plugin's config.toml from its options.
           pluginConfig = p:
             tomlFormat.generate "${p.name}-config.toml" ({
@@ -358,6 +367,17 @@
               description = "Holds per-plugin SQLite + assets and plugin_web bundles.";
             };
             errorReportUrl = mkOption { type = types.nullOr types.str; default = null; };
+            environmentFile = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              description = ''
+                Optional EnvironmentFile (e.g. a sops-decrypted .env) applied to
+                the main + plugin services. Its vars are substituted into the
+                rendered config.toml at service start via envsubst, so
+                ''${SECRET} placeholders in `password`/`settings` never enter the
+                Nix store.
+              '';
+            };
             plugins = mkOption {
               default = [ ];
               description = "Plugins to register and run alongside the main server.";
@@ -413,10 +433,12 @@
                   ExecStartPre = [
                     "${pkgs.coreutils}/bin/mkdir -p ${cfg.dataDir}/server ${cfg.dataDir}/frontend"
                     "${pkgs.coreutils}/bin/ln -sfn ${cfg.frontendDist} ${cfg.dataDir}/frontend/dist"
-                    "${pkgs.coreutils}/bin/cp -f ${serverConfigToml} ${cfg.dataDir}/server/config.toml"
+                    (renderCmd serverConfigToml "${cfg.dataDir}/server/config.toml")
                   ];
                   ExecStart = "${cfg.package}/bin/server";
                   Restart = "always";
+                } // lib.optionalAttrs (cfg.environmentFile != null) {
+                  EnvironmentFile = cfg.environmentFile;
                 };
               };
             } // lib.listToAttrs (map (p: {
@@ -432,10 +454,12 @@
                   WorkingDirectory = "${cfg.dataDir}/plugins/${p.name}";
                   ExecStartPre = [
                     "${pkgs.coreutils}/bin/mkdir -p ${cfg.dataDir}/plugins/${p.name}"
-                    "${pkgs.coreutils}/bin/cp -f ${pluginConfig p} ${cfg.dataDir}/plugins/${p.name}/config.toml"
+                    (renderCmd (pluginConfig p) "${cfg.dataDir}/plugins/${p.name}/config.toml")
                   ];
                   ExecStart = "${p.package}/bin/${p.name}_server";
                   Restart = "always";
+                } // lib.optionalAttrs (cfg.environmentFile != null) {
+                  EnvironmentFile = cfg.environmentFile;
                 };
               };
             }) cfg.plugins);
